@@ -145,6 +145,14 @@ export const useChatStore = defineStore('chat', () => {
   }
   
   function findMessageBySessionId(sessionId: string): Message | null {
+    // Prefer the most recent assistant message for this session.
+    for (let i = currentMessages.value.length - 1; i >= 0; i--) {
+      const m = currentMessages.value[i]
+      if (m.sessionId === sessionId && m.role === 'assistant') {
+        return m
+      }
+    }
+    // Fallback to any message with the sessionId (legacy behavior)
     return currentMessages.value.find(m => m.sessionId === sessionId) || null
   }
   

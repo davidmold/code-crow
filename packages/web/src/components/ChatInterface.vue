@@ -260,15 +260,15 @@ const isProcessing = computed(() => chatStore.isProcessing)
 const currentStatusMessage = ref<string>('')
 const showStatus = ref(false)
 const statusMessages = {
-  initializing: ['Waking up Claude...', 'Stretching digital limbs...', 'Loading brain cells...', 'Clauding up...'],
-  thinking: ['Pondering deeply...', 'Cogitating...', 'Fiddle-faddling...', 'Brain-storming...', 'Clauding intensely...'],
+  initializing: ['Initalizing...', 'Getting started...', 'Setting up...', 'On my marks...'],
+  thinking: ['Thinking...', 'Cogitating...', 'Fiddle-faddling...', 'Pondering...', 'Considering...'],
   using_tool: {
-    Read: ['Reading files...', 'Perusing documents...', 'Scanning content...'],
-    Write: ['Scribbling notes...', 'Crafting text...', 'Penning thoughts...'],
-    Bash: ['Running commands...', 'Terminal wizardry...', 'Shell shenanigans...'],
-    default: ['Using tools...', 'Working magic...', 'Applying skills...']
+    Read: ['Reading...'],
+    Write: ['Writing...'],
+    Bash: ['Running bash...'],
+    default: ['Using tools...']
   },
-  processing: ['Crunching data...', 'Processing results...', 'Analyzing...'],
+  processing: ['Processing...'],
   completing: ['Wrapping up...', 'Finishing touches...', 'Almost done...']
 }
 
