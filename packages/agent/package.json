@@ -1,0 +1,28 @@
+{
+  "name": "@code-crow/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "cli": "tsx src/cli.ts",
+    "cli:execute": "tsx src/cli.ts execute",
+    "cli:scan": "tsx src/cli.ts scan",
+    "clean": "rm -rf dist node_modules",
+    "lint": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.0",
+    "socket.io-client": "^4.7.5",
+    "dotenv": "^16.4.5",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}

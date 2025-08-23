@@ -1,0 +1,41 @@
+{
+  "name": "code-crow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"sleep 2 && npm run dev:web\" \"sleep 5 && npm run dev:agent\"",
+    "dev:web": "npm run dev --workspace=packages/web",
+    "dev:server": "npm run dev --workspace=packages/server", 
+    "dev:agent": "npm run dev --workspace=packages/agent",
+    "build": "npm run build --workspaces",
+    "build:web": "npm run build --workspace=packages/web",
+    "build:server": "npm run build --workspace=packages/server",
+    "build:agent": "npm run build --workspace=packages/agent",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "agent:cli": "npm run cli --workspace=packages/agent --",
+    "agent:execute": "npm run cli:execute --workspace=packages/agent --",
+    "agent:scan": "npm run cli:scan --workspace=packages/agent --"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "@typescript-eslint/eslint-plugin": "^7.12.0",
+    "@typescript-eslint/parser": "^7.12.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "projects": [
+    {
+      "id": "project_1755817867623_7gz8somdn",
+      "name": "CodeCrow",
+      "path": "/home/davidmold/projects/mrcloud/code-crow",
+      "type": "node",
+      "description": "Claude coding app built with sdk",
+      "framework": "Node.js",
+      "packageManager": "npm",
+      "language": "TypeScript",
+      "hasGit": false,
+      "fileCount": 87,
+      "size": 719636,
+      "lastAccessed": "2025-08-22T14:41:27.954Z",
+      "lastModified": "2025-08-21T23:11:07.623Z"
+    },
+    {
+      "id": "project_1755827701742_yivi73lm7",
+      "name": "illustrationx-v3",
+      "path": "/home/davidmold/clients/illustration/illustration-x-v2/illustrationx-v3",
+      "type": "vue",
+      "lastModified": "2025-08-22T01:55:01.742Z",
+      "framework": "Vue.js",
+      "packageManager": "npm",
+      "language": "TypeScript",
+      "hasGit": true,
+      "fileCount": 908,
+      "size": 14335613,
+      "lastAccessed": "2025-08-22T19:05:45.525Z"
+    },
+    {
+      "id": "project_1755968655804_xgety4wss",
+      "name": "Planets",
+      "path": "/home/davidmold/projects/games/planets-opus",
+      "type": "unknown",
+      "lastModified": "2025-08-23T17:04:15.804Z",
+      "description": "Solar system simulator",
+      "hasGit": false,
+      "fileCount": 21,
+      "size": 6469009,
+      "lastAccessed": "2025-08-23T17:39:54.786Z"
+    }
+  ],
+  "lastModified": "2025-08-23T17:39:54.786Z",
+  "version": "1.0.0"
+}
