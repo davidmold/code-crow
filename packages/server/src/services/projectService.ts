@@ -1,7 +1,13 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { ProjectConfigService } from './projectConfigService.js'
-import type { ProjectInfo } from '@code-crow/shared'
+import type { 
+  ProjectInfo, 
+  AddProjectRequest, 
+  AddProjectResponse, 
+  RemoveProjectRequest, 
+  UpdateProjectRequest 
+} from '@code-crow/shared'
 
 export interface FileInfo {
   id: string
@@ -45,7 +51,7 @@ export class ProjectService {
           } catch {
             // Project path no longer exists, mark it
             console.warn(`⚠️ Project path no longer exists: ${project.path}`)
-            return { ...project, status: 'missing' } as any
+            return { ...project, status: 'missing' } as ProjectInfo & { status: string }
           }
         })
       )
@@ -223,15 +229,15 @@ export class ProjectService {
   }
 
   // Project management methods
-  static async addProject(request: any): Promise<any> {
+  static async addProject(request: AddProjectRequest): Promise<AddProjectResponse> {
     return this.configService.addProject(request)
   }
 
-  static async removeProject(request: any): Promise<boolean> {
+  static async removeProject(request: RemoveProjectRequest): Promise<boolean> {
     return this.configService.removeProject(request)
   }
 
-  static async updateProject(request: any): Promise<boolean> {
+  static async updateProject(request: UpdateProjectRequest): Promise<boolean> {
     return this.configService.updateProject(request)
   }
 
@@ -292,7 +298,7 @@ export class ProjectService {
   }
 
   // Get project statistics
-  static async getProjectStats(projectId: string): Promise<any> {
+  static async getProjectStats(projectId: string): Promise<{ fileCount: number; totalSize: number; error?: string }> {
     try {
       const project = await this.getProject(projectId)
       if (!project) {

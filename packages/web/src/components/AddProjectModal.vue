@@ -1,10 +1,13 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
+  <div
+    v-if="isOpen"
+    class="fixed inset-0 z-50 overflow-y-auto"
+  >
     <!-- Backdrop -->
     <div 
       class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
       @click="closeModal"
-    ></div>
+    />
 
     <!-- Modal -->
     <div class="flex min-h-full items-center justify-center p-4">
@@ -16,21 +19,37 @@
               Add New Project
             </h3>
             <button
-              @click="closeModal"
               class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              @click="closeModal"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
         </div>
 
         <!-- Body -->
-        <form @submit.prevent="addProject" class="p-6 space-y-4">
+        <form
+          class="p-6 space-y-4"
+          @submit.prevent="addProject"
+        >
           <!-- Directory Path -->
           <div>
-            <label for="directoryPath" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              for="directoryPath"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Project Directory *
             </label>
             <div class="flex space-x-2">
@@ -41,11 +60,11 @@
                 required
                 placeholder="/path/to/your/project"
                 class="flex-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
+              >
               <button
                 type="button"
-                @click="browseDirectory"
                 class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors"
+                @click="browseDirectory"
               >
                 Browse
               </button>
@@ -57,7 +76,10 @@
 
           <!-- Custom Name -->
           <div>
-            <label for="customName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              for="customName"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Custom Name (optional)
             </label>
             <input
@@ -66,12 +88,15 @@
               type="text"
               placeholder="Leave empty to auto-detect"
               class="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            />
+            >
           </div>
 
           <!-- Description -->
           <div>
-            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              for="description"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Description (optional)
             </label>
             <textarea
@@ -80,7 +105,7 @@
               rows="3"
               placeholder="Brief description of this project..."
               class="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-none"
-            ></textarea>
+            />
           </div>
 
           <!-- Auto-detect checkbox -->
@@ -90,14 +115,20 @@
               v-model="form.autoDetect"
               type="checkbox"
               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label for="autoDetect" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            >
+            <label
+              for="autoDetect"
+              class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+            >
               Auto-detect project type and framework
             </label>
           </div>
 
           <!-- Detection Preview -->
-          <div v-if="detectionResult" class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+          <div
+            v-if="detectionResult"
+            class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md"
+          >
             <h4 class="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
               🔍 Detection Preview
             </h4>
@@ -116,10 +147,23 @@
           </div>
 
           <!-- Error Display -->
-          <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
+          <div
+            v-if="error"
+            class="p-3 bg-red-50 dark:bg-red-900/20 rounded-md"
+          >
             <div class="flex">
-              <svg class="h-5 w-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <svg
+                class="h-5 w-5 text-red-400 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div class="ml-3">
                 <h3 class="text-sm font-medium text-red-800 dark:text-red-300">
@@ -136,16 +180,16 @@
           <div class="flex justify-end space-x-3 pt-4">
             <button
               type="button"
-              @click="closeModal"
               class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors"
+              @click="closeModal"
             >
               Cancel
             </button>
             <button
               type="button"
-              @click="validateDirectory"
               :disabled="!form.directoryPath || isValidating"
               class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600 dark:text-blue-100 dark:hover:bg-blue-500 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="validateDirectory"
             >
               <span v-if="isValidating">Validating...</span>
               <span v-else>Validate</span>
@@ -175,11 +219,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
-import { ApiService } from '@/services/api'
+// import { ApiService } from '@/services/api' // Unused in this component
 import { useUiStore } from '@/stores/uiStore'
 import { useProjectStore } from '@/stores/projectStore'
 import DirectoryBrowser from './DirectoryBrowser.vue'
-import type { AddProjectRequest, ProjectDetectionResult } from '@code-crow/shared'
+import type { AddProjectRequest, ProjectDetectionResult, Project } from '@code-crow/shared'
 
 interface Props {
   isOpen: boolean
@@ -187,7 +231,7 @@ interface Props {
 
 interface Emits {
   (event: 'close'): void
-  (event: 'project-added', project: any): void
+  (event: 'project-added', project: Project): void
 }
 
 const props = defineProps<Props>()

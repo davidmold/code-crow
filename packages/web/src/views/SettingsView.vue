@@ -3,14 +3,19 @@
     <div class="max-w-4xl mx-auto">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          Settings
+        </h1>
         <p class="mt-2 text-gray-600 dark:text-gray-300">
           Configure your Code Crow experience
         </p>
       </div>
 
       <!-- Settings form -->
-      <form @submit.prevent="saveSettings" class="space-y-8">
+      <form
+        class="space-y-8"
+        @submit.prevent="saveSettings"
+      >
         <!-- Appearance -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
@@ -28,9 +33,15 @@
                   v-model="localSettings.theme"
                   class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="auto">Auto (System)</option>
+                  <option value="light">
+                    Light
+                  </option>
+                  <option value="dark">
+                    Dark
+                  </option>
+                  <option value="auto">
+                    Auto (System)
+                  </option>
                 </select>
               </div>
 
@@ -46,7 +57,7 @@
                   max="24"
                   step="1"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
+                >
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                   <span>10px</span>
                   <span>24px</span>
@@ -71,7 +82,7 @@
                     v-model="localSettings.autoSave"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Auto-save files</span>
                 </label>
 
@@ -80,7 +91,7 @@
                     v-model="localSettings.showLineNumbers"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show line numbers</span>
                 </label>
 
@@ -89,7 +100,7 @@
                     v-model="localSettings.wordWrap"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Word wrap</span>
                 </label>
 
@@ -98,7 +109,7 @@
                     v-model="localSettings.minimap"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show minimap</span>
                 </label>
               </div>
@@ -123,9 +134,15 @@
                   v-model="localSettings.defaultView"
                   class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="projects">Projects</option>
-                  <option value="chat">Chat</option>
-                  <option value="files">Files</option>
+                  <option value="projects">
+                    Projects
+                  </option>
+                  <option value="chat">
+                    Chat
+                  </option>
+                  <option value="files">
+                    Files
+                  </option>
                 </select>
               </div>
 
@@ -141,7 +158,7 @@
                   max="120000"
                   step="5000"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
+                >
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                   <span>5s</span>
                   <span>120s</span>
@@ -155,7 +172,7 @@
                     v-model="localSettings.notifications"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enable notifications</span>
                 </label>
 
@@ -164,7 +181,7 @@
                     v-model="localSettings.autoRefreshProjects"
                     type="checkbox"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                  />
+                  >
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Auto-refresh projects</span>
                 </label>
               </div>
@@ -181,7 +198,7 @@
                   max="300000"
                   step="10000"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
+                >
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                   <span>10s</span>
                   <span>300s</span>
@@ -211,7 +228,7 @@
                   max="10485760"
                   step="65536"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
+                >
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                   <span>64KB</span>
                   <span>10MB</span>
@@ -232,11 +249,20 @@
                     {{ ext }}
                     <button
                       type="button"
-                      @click="removeExcludedFileType(index)"
                       class="ml-1.5 h-4 w-4 rounded-full inline-flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-500 dark:hover:bg-gray-600 dark:hover:text-gray-300"
+                      @click="removeExcludedFileType(index)"
                     >
-                      <svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
-                        <path stroke-linecap="round" stroke-width="1.5" d="m1 1 6 6m0-6-6 6"/>
+                      <svg
+                        class="h-2 w-2"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 8 8"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-width="1.5"
+                          d="m1 1 6 6m0-6-6 6"
+                        />
                       </svg>
                     </button>
                   </span>
@@ -248,11 +274,11 @@
                     placeholder=".ext"
                     class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     @keyup.enter="addExcludedFileType"
-                  />
+                  >
                   <button
                     type="button"
-                    @click="addExcludedFileType"
                     class="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md hover:bg-gray-200 dark:hover:bg-gray-500 text-sm"
+                    @click="addExcludedFileType"
                   >
                     Add
                   </button>
@@ -267,22 +293,22 @@
           <div class="flex space-x-3">
             <button
               type="button"
-              @click="exportSettings"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+              @click="exportSettings"
             >
               Export
             </button>
             <button
               type="button"
-              @click="showImportDialog = true"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+              @click="showImportDialog = true"
             >
               Import
             </button>
             <button
               type="button"
-              @click="resetToDefaults"
               class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 shadow-sm text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+              @click="resetToDefaults"
             >
               Reset to Defaults
             </button>
@@ -291,9 +317,9 @@
           <div class="flex space-x-3">
             <button
               type="button"
-              @click="cancelChanges"
               :disabled="!hasChanges"
               class="px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="cancelChanges"
             >
               Cancel
             </button>
@@ -309,7 +335,10 @@
       </form>
 
       <!-- Import dialog -->
-      <div v-if="showImportDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div
+        v-if="showImportDialog"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Import Settings
@@ -318,18 +347,18 @@
             v-model="importData"
             placeholder="Paste exported settings JSON here..."
             class="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          ></textarea>
+          />
           <div class="flex justify-end space-x-3 mt-4">
             <button
-              @click="showImportDialog = false; importData = ''"
               class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              @click="showImportDialog = false; importData = ''"
             >
               Cancel
             </button>
             <button
-              @click="importSettingsData"
               :disabled="!importData.trim()"
               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="importSettingsData"
             >
               Import
             </button>

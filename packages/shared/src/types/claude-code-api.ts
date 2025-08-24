@@ -31,7 +31,7 @@ export interface ClaudeCodeApiOptions {
   temperature?: number;
 
   // Custom Options (extensible for future Claude Code SDK features)
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

@@ -51,14 +51,15 @@ export class ProjectConfigService {
     return this.config
   }
 
-  private validateAndMigrateConfig(config: any): ProjectsConfig {
+  private validateAndMigrateConfig(config: Record<string, unknown>): ProjectsConfig {
     // Ensure all required fields exist
     if (!config.projects) config.projects = []
     if (!config.lastModified) config.lastModified = new Date().toISOString()
     if (!config.version) config.version = '1.0.0'
 
     // Migrate and validate each project
-    config.projects = config.projects.filter((project: any) => {
+    const projects = Array.isArray(config.projects) ? config.projects : [];
+    config.projects = projects.filter((project: Record<string, unknown>) => {
       // Basic validation
       if (!project.id || !project.name || !project.path) {
         return false
@@ -279,7 +280,7 @@ export class ProjectConfigService {
     }
   }
 
-  private async analyzeNodeProject(packageJson: any, directoryPath: string): Promise<ProjectDetectionResult> {
+  private async analyzeNodeProject(packageJson: Record<string, unknown>, directoryPath: string): Promise<ProjectDetectionResult> {
     const name = packageJson.name || path.basename(directoryPath)
     const hasGit = await this.hasGitDirectory(directoryPath)
     
@@ -351,7 +352,7 @@ export class ProjectConfigService {
     }
   }
 
-  private async analyzePythonProject(directoryPath: string, fileSet: Set<string>): Promise<ProjectDetectionResult> {
+  private async analyzePythonProject(directoryPath: string, _fileSet: Set<string>): Promise<ProjectDetectionResult> {
     return {
       type: 'python',
       name: path.basename(directoryPath),
@@ -373,7 +374,7 @@ export class ProjectConfigService {
     }
   }
 
-  private async readPackageJson(packagePath: string): Promise<any> {
+  private async readPackageJson(packagePath: string): Promise<Record<string, unknown>> {
     try {
       const data = await fs.readFile(packagePath, 'utf-8')
       return JSON.parse(data)

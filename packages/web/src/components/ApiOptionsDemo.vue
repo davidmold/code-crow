@@ -1,6 +1,8 @@
 <template>
   <div class="api-options-demo p-6 bg-white rounded-lg shadow-lg">
-    <h3 class="text-lg font-semibold mb-4">Claude Code API Options Demo</h3>
+    <h3 class="text-lg font-semibold mb-4">
+      Claude Code API Options Demo
+    </h3>
     
     <div class="space-y-4">
       <div>
@@ -9,7 +11,7 @@
           v-model="command" 
           class="w-full px-3 py-2 border rounded-md" 
           placeholder="Enter your command..."
-        />
+        >
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -22,7 +24,7 @@
             min="1"
             max="20"
             placeholder="5"
-          />
+          >
           <small class="text-gray-500">⚠️ Usually leave empty! Only set if you want to artificially limit Claude's ability to complete tasks</small>
         </div>
 
@@ -33,7 +35,7 @@
             type="number" 
             class="w-full px-3 py-2 border rounded-md"
             step="1000"
-          />
+          >
         </div>
       </div>
 
@@ -53,7 +55,7 @@
           v-model="allowedToolsText" 
           class="w-full px-3 py-2 border rounded-md" 
           placeholder="bash,str_replace_editor,computer"
-        />
+        >
       </div>
 
       <div>
@@ -62,10 +64,18 @@
           v-model="permissionMode" 
           class="w-full px-3 py-2 border rounded-md"
         >
-          <option value="">Default (prompt for each action)</option>
-          <option value="plan">📋 Plan Mode - Claude creates a plan first, then asks for approval</option>
-          <option value="allow">✅ Allow All - Execute all actions automatically</option>
-          <option value="deny">❌ Deny All - Block all actions (analysis only)</option>
+          <option value="">
+            Default (prompt for each action)
+          </option>
+          <option value="plan">
+            📋 Plan Mode - Claude creates a plan first, then asks for approval
+          </option>
+          <option value="allow">
+            ✅ Allow All - Execute all actions automatically
+          </option>
+          <option value="deny">
+            ❌ Deny All - Block all actions (analysis only)
+          </option>
         </select>
       </div>
 
@@ -75,7 +85,7 @@
             v-model="newSession" 
             type="checkbox" 
             class="mr-2"
-          />
+          >
           Start New Session
         </label>
 
@@ -84,23 +94,28 @@
             v-model="continueSession" 
             type="checkbox" 
             class="mr-2"
-          />
+          >
           Continue Session
         </label>
       </div>
 
       <div class="pt-4">
         <button 
-          @click="executeCommand"
           :disabled="!command.trim()"
           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="executeCommand"
         >
           Execute with Custom Options
         </button>
       </div>
 
-      <div v-if="lastOptions" class="mt-4 p-3 bg-gray-100 rounded-md">
-        <h4 class="font-medium mb-2">Last API Options Sent:</h4>
+      <div
+        v-if="lastOptions"
+        class="mt-4 p-3 bg-gray-100 rounded-md"
+      >
+        <h4 class="font-medium mb-2">
+          Last API Options Sent:
+        </h4>
         <pre class="text-sm overflow-x-auto">{{ JSON.stringify(lastOptions, null, 2) }}</pre>
       </div>
     </div>

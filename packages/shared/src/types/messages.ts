@@ -75,10 +75,10 @@ export interface SocketEventMap {
   
   // Server events
   'auth_result': (data: { success: boolean; clientId: string; message?: string }) => void;
-  'command_result': (data: { sessionId: string; response: string; status: 'streaming' | 'complete' | 'error'; metadata?: any }) => void;
-  'project_update': (data: { projectId: string; files?: any[]; changes?: any[] }) => void;
+  'command_result': (data: { sessionId: string; response: string; status: 'streaming' | 'complete' | 'error'; metadata?: Record<string, unknown> }) => void;
+  'project_update': (data: { projectId: string; files?: unknown[]; changes?: unknown[] }) => void;
   'connection_status': (data: { agentConnected: boolean; activeAgents: number; serverStatus: string }) => void;
-  'error': (data: { code: string; message: string; details?: any; sessionId?: string }) => void;
+  'error': (data: { code: string; message: string; details?: unknown; sessionId?: string }) => void;
   'heartbeat_response': (data: { serverTime: string }) => void;
   
   // Agent events

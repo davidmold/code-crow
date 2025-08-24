@@ -11,6 +11,21 @@ export interface Message {
   sessionId?: string
 }
 
+interface StoredMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string // ISO string in storage
+  status?: 'loading' | 'error' | 'complete' | 'streaming'
+  sessionId?: string
+}
+
+interface StoredProjectChatHistory {
+  projectId: string
+  messages: StoredMessage[]
+  lastActive: string // ISO string in storage
+}
+
 export interface ProjectChatHistory {
   projectId: string
   messages: Message[]
@@ -27,10 +42,10 @@ function loadProjectChatsFromStorage(): Map<string, ProjectChatHistory> {
     const chats = new Map<string, ProjectChatHistory>()
     
     for (const [projectId, chatData] of Object.entries(data)) {
-      const chat = chatData as any
+      const chat = chatData as StoredProjectChatHistory
       chats.set(projectId, {
         projectId,
-        messages: chat.messages.map((m: any) => ({
+        messages: chat.messages.map((m: StoredMessage): Message => ({
           ...m,
           timestamp: new Date(m.timestamp)
         })),
@@ -199,7 +214,7 @@ export const useChatStore = defineStore('chat', () => {
   // Persistence functions
   function saveProjectChatsToStorage() {
     try {
-      const data: Record<string, any> = {}
+      const data: Record<string, StoredProjectChatHistory> = {}
       
       for (const [projectId, chat] of projectChats.value.entries()) {
         data[projectId] = {

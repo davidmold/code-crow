@@ -72,6 +72,7 @@ export interface PermissionRule {
 // Export WebSocket types
 export * from './websocket.js'
 export * from './messages.js'
+export * from '../websocket/BaseWebSocketClient.js'
 
 // Export Stage 5 types  
 export * from './commands.js'

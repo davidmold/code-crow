@@ -1,9 +1,6 @@
-import { io, Socket } from 'socket.io-client'
 import { 
   SOCKET_EVENTS,
-  CONNECTION_STATES,
   MessageFactory,
-  ConnectionAuth,
   ExecuteCommand,
   JoinProject,
   LeaveProject,
@@ -12,11 +9,11 @@ import {
   ProjectUpdate,
   FileChange,
   ErrorMessage,
-  ConnectionState,
   PermissionRequest,
   PermissionResponse,
   ClaudeCodeApiOptions,
-  WebClientOptions
+  WebClientOptions,
+  BaseWebSocketClient
 } from '@code-crow/shared'
 
 export interface WebSocketServiceEvents {
@@ -30,213 +27,66 @@ export interface WebSocketServiceEvents {
   permissionRequest: (request: PermissionRequest) => void
   permissionTimeout: (data: { requestId: string, reason: string }) => void
   sessionCleared: (data: { sessionId: string }) => void
-  sessionStatus: (data: { sessionId: string, exists: boolean, info: any }) => void
+  sessionStatus: (data: { sessionId: string, exists: boolean, info: Record<string, unknown> }) => void
   sessionError: (data: { sessionId: string, error: string }) => void
 }
 
-export class WebSocketService {
-  private socket: Socket | null = null
-  private connectionState: ConnectionState = CONNECTION_STATES.DISCONNECTED
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private heartbeatInterval: NodeJS.Timeout | null = null
+export class WebSocketService extends BaseWebSocketClient {
   private eventListeners = new Map<keyof WebSocketServiceEvents, Function[]>()
   private static isConnecting = false // Global flag to prevent multiple connections
   
   constructor(
-    private serverUrl: string = import.meta.env.VITE_WS_URL || 'http://localhost:8080',
-    private clientId: string = `web-${Date.now()}`
+    serverUrl: string = import.meta.env.VITE_WS_URL || 'http://localhost:8080',
+    clientId: string = `web-${Date.now()}`
   ) {
+    super('web', {
+      serverUrl,
+      clientId,
+      timeout: 15000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      heartbeatInterval: 30000
+    })
     console.log(`🏗️ WebSocketService constructor called - clientId: ${this.clientId}`)
     // Add to window for debugging
     if (typeof window !== 'undefined') {
-      // @ts-ignore
+      // @ts-expect-error - Adding debug property to window for development
       window.__wsDebug = { clientId: this.clientId, instance: this }
     }
   }
 
   async connect(): Promise<boolean> {
+    // Global check to prevent multiple connections
+    if (WebSocketService.isConnecting) {
+      console.log(`🔌 Connection already in progress, waiting...`)
+      // Wait for the current connection attempt to complete
+      return new Promise((resolve) => {
+        const checkConnection = () => {
+          if (!WebSocketService.isConnecting) {
+            resolve(this.isConnected())
+          } else {
+            setTimeout(checkConnection, 100)
+          }
+        }
+        checkConnection()
+      })
+    }
+
+    // Set global connecting flag
+    WebSocketService.isConnecting = true
+    
     try {
-      // Global check to prevent multiple connections
-      if (WebSocketService.isConnecting) {
-        console.log(`🔌 Connection already in progress, waiting...`)
-        // Wait for the current connection attempt to complete
-        return new Promise((resolve) => {
-          const checkConnection = () => {
-            if (!WebSocketService.isConnecting) {
-              resolve(this.isConnected())
-            } else {
-              setTimeout(checkConnection, 100)
-            }
-          }
-          checkConnection()
-        })
-      }
-
-      // If already connected, return true
-      if (this.socket && this.socket.connected && this.connectionState === CONNECTION_STATES.CONNECTED) {
-        console.log(`🔌 Already connected to server: ${this.serverUrl}`)
-        return true
-      }
-
-      // Set global connecting flag
-      WebSocketService.isConnecting = true
-
-      // Disconnect any existing socket first
-      if (this.socket) {
-        console.log(`🔌 Disconnecting existing socket before reconnecting (id: ${this.socket.id})`)
-        this.socket.removeAllListeners() // Remove all listeners to prevent ghost events
-        this.socket.disconnect()
-        this.socket = null
-      }
-
-      console.log(`🔌 Connecting to server: ${this.serverUrl} (clientId: ${this.clientId})`)
-      this.connectionState = CONNECTION_STATES.CONNECTING
-
-      this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'],
-        timeout: 10000,
-        reconnection: true,
-        reconnectionAttempts: this.maxReconnectAttempts,
-        reconnectionDelay: 2000,
-        autoConnect: false
-      })
-
-      this.setupEventHandlers()
-      this.socket.connect()
-
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.error('⏰ Connection timeout')
-          WebSocketService.isConnecting = false
-          this.connectionState = CONNECTION_STATES.ERROR
-          reject(new Error('Connection timeout'))
-        }, 15000) // Increased timeout to 15 seconds
-
-        this.socket!.once('connect', async () => {
-          console.log('🔌 Socket connected, starting authentication...')
-          try {
-            const success = await this.authenticate()
-            clearTimeout(timeout)
-            WebSocketService.isConnecting = false
-            resolve(success)
-          } catch (error) {
-            clearTimeout(timeout)
-            WebSocketService.isConnecting = false
-            console.error('❌ Authentication failed:', error)
-            this.connectionState = CONNECTION_STATES.ERROR
-            reject(error)
-          }
-        })
-
-        this.socket!.once('connect_error', (error) => {
-          console.error('❌ Connection error:', error)
-          clearTimeout(timeout)
-          WebSocketService.isConnecting = false
-          this.connectionState = CONNECTION_STATES.ERROR
-          reject(error)
-        })
-      })
-
+      const result = await super.connect()
+      WebSocketService.isConnecting = false
+      return result
     } catch (error) {
-      console.error('❌ Connection failed:', error)
-      this.connectionState = CONNECTION_STATES.ERROR
-      WebSocketService.isConnecting = false // Clear flag on exception
-      return false
+      WebSocketService.isConnecting = false
+      throw error
     }
   }
 
-  private async authenticate(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      if (!this.socket || !this.socket.connected) {
-        reject(new Error('Socket not connected'))
-        return
-      }
-
-      const authData: ConnectionAuth = MessageFactory.createMessage('auth', {
-        clientType: 'web',
-        clientId: this.clientId,
-        version: '1.0.0'
-      })
-
-      console.log(`🔐 Sending authentication for client: ${this.clientId} (socket: ${this.socket.id})`)
-
-      const timeout = setTimeout(() => {
-        console.error(`⏰ Authentication timeout for client: ${this.clientId} (socket: ${this.socket?.id})`)
-        this.connectionState = CONNECTION_STATES.ERROR
-        reject(new Error('Authentication timeout'))
-      }, 10000) // Increased to 10 seconds
-
-      // Remove any existing auth result listeners to prevent duplicates
-      this.socket.removeAllListeners(SOCKET_EVENTS.AUTH_RESULT)
-      
-      this.socket.once(SOCKET_EVENTS.AUTH_RESULT, (data) => {
-        clearTimeout(timeout)
-        if (data && data.success) {
-          console.log(`✅ Web client authenticated successfully: ${this.clientId} (socket: ${this.socket?.id})`)
-          this.connectionState = CONNECTION_STATES.CONNECTED
-          this.reconnectAttempts = 0
-          this.startHeartbeat()
-          
-          // Emit connected event after a small delay to ensure state is fully updated
-          setTimeout(() => {
-            console.log('🔔 Emitting connected event to listeners')
-            this.emit('connected')
-          }, 100)
-          
-          resolve(true)
-        } else {
-          console.error(`❌ Authentication failed for ${this.clientId}:`, data?.message || 'Unknown auth error')
-          this.connectionState = CONNECTION_STATES.ERROR
-          reject(new Error(data?.message || 'Authentication failed'))
-        }
-      })
-
-      // Also listen for errors during authentication
-      this.socket.once(SOCKET_EVENTS.ERROR, (error) => {
-        clearTimeout(timeout)
-        console.error(`❌ Authentication error for ${this.clientId}:`, error)
-        this.connectionState = CONNECTION_STATES.ERROR
-        reject(new Error(error.error?.message || 'Authentication error'))
-      })
-
-      this.socket.emit(SOCKET_EVENTS.AUTH, authData)
-      console.log(`📤 Authentication message sent for client: ${this.clientId}`)
-    })
-  }
-
-  private setupEventHandlers() {
+  protected setupEventHandlers() {
     if (!this.socket) return
-
-    // Connection events
-    this.socket.on('connect', () => {
-      console.log('🔌 Socket connected to server')
-      // Don't set state to CONNECTED here - wait for authentication
-      this.connectionState = CONNECTION_STATES.CONNECTING
-    })
-
-    this.socket.on('disconnect', (reason) => {
-      console.log(`🔌 Disconnected: ${reason}`)
-      this.connectionState = CONNECTION_STATES.DISCONNECTED
-      this.stopHeartbeat()
-      WebSocketService.isConnecting = false
-      this.emit('disconnected', reason)
-    })
-
-    this.socket.on('reconnect', (attempt) => {
-      console.log(`🔄 Reconnected after ${attempt} attempts`)
-      this.connectionState = CONNECTION_STATES.CONNECTING
-      // Re-authenticate after reconnection
-      this.authenticate().catch((error) => {
-        console.error('❌ Re-authentication failed:', error)
-        this.connectionState = CONNECTION_STATES.ERROR
-      })
-    })
-
-    this.socket.on('reconnect_error', (error) => {
-      console.error('🔄 Reconnection failed:', error)
-      this.connectionState = CONNECTION_STATES.ERROR
-    })
 
     // Command results
     this.socket.on(SOCKET_EVENTS.COMMAND_RESULT, (data: CommandResult) => {
@@ -262,22 +112,6 @@ export class WebSocketService {
       this.emit('fileChange', data)
     })
 
-    // Error handling
-    this.socket.on(SOCKET_EVENTS.ERROR, (error: ErrorMessage) => {
-      console.error('❌ Server error:', error)
-      this.emit('error', error)
-    })
-
-    this.socket.on('error', (error) => {
-      console.error('❌ Socket error:', error)
-      this.connectionState = CONNECTION_STATES.ERROR
-    })
-
-    // Heartbeat response
-    this.socket.on(SOCKET_EVENTS.HEARTBEAT_RESPONSE, () => {
-      // Server responded to heartbeat
-    })
-
     // Permission events
     this.socket.on('permission:request', (request: PermissionRequest) => {
       console.log(`🔐 Received permission request: ${request.id} for ${request.toolName}`)
@@ -295,7 +129,7 @@ export class WebSocketService {
       this.emit('sessionCleared', data)
     })
 
-    this.socket.on('session:status', (data: { sessionId: string, exists: boolean, info: any }) => {
+    this.socket.on('session:status', (data: { sessionId: string, exists: boolean, info: Record<string, unknown> }) => {
       console.log(`📊 Session status: ${data.sessionId} (exists: ${data.exists})`)
       this.emit('sessionStatus', data)
     })
@@ -304,6 +138,23 @@ export class WebSocketService {
       console.log(`❌ Session error: ${data.sessionId} - ${data.error}`)
       this.emit('sessionError', data)
     })
+  }
+
+  protected onAuthenticated(): void {
+    // Emit connected event after a small delay to ensure state is fully updated
+    setTimeout(() => {
+      console.log('🔔 Emitting connected event to listeners')
+      this.emit('connected')
+    }, 100)
+  }
+
+  protected onDisconnected(reason: string): void {
+    WebSocketService.isConnecting = false
+    this.emit('disconnected', reason)
+  }
+
+  protected onError(error: ErrorMessage): void {
+    this.emit('error', error)
   }
 
   // Public API methods
@@ -424,7 +275,7 @@ export class WebSocketService {
     return () => this.off('permissionTimeout', callback)
   }
 
-  onCommandResult(callback: (result: any) => void): () => void {
+  onCommandResult(callback: (result: CommandResult) => void): () => void {
     this.on('commandResult', callback)
     return () => this.off('commandResult', callback)
   }
@@ -473,55 +324,9 @@ export class WebSocketService {
     }
   }
 
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      if (this.socket && this.connectionState === CONNECTION_STATES.CONNECTED) {
-        this.socket.emit(SOCKET_EVENTS.HEARTBEAT)
-      }
-    }, 30000) // Every 30 seconds
-  }
-
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval)
-      this.heartbeatInterval = null
-    }
-  }
-
   disconnect(): void {
-    console.log(`🔌 Disconnecting web client (clientId: ${this.clientId})...`)
-    
-    this.stopHeartbeat()
-    
-    if (this.socket) {
-      console.log(`🔌 Disconnecting socket: ${this.socket.id}`)
-      this.socket.removeAllListeners() // Remove all listeners
-      this.socket.disconnect()
-      this.socket = null
-    }
-    
-    this.connectionState = CONNECTION_STATES.DISCONNECTED
-    WebSocketService.isConnecting = false // Clear global flag
+    super.disconnect()
     this.eventListeners.clear()
-  }
-
-  // Status methods
-  getConnectionState(): ConnectionState {
-    return this.connectionState
-  }
-
-  isConnected(): boolean {
-    return this.connectionState === CONNECTION_STATES.CONNECTED && this.socket?.connected === true
-  }
-
-  getStats() {
-    return {
-      connectionState: this.connectionState,
-      isConnected: this.isConnected(),
-      reconnectAttempts: this.reconnectAttempts,
-      clientId: this.clientId,
-      serverUrl: this.serverUrl
-    }
   }
 }
 
@@ -536,7 +341,7 @@ function createWebSocketServiceInstance(): WebSocketService {
     
     // Store in window for debugging in development
     if (typeof window !== 'undefined') {
-      // @ts-ignore - Development helper
+      // @ts-expect-error - Development helper for debugging
       window.__webSocketService = webSocketServiceInstance
     }
   } else {

@@ -11,8 +11,8 @@
       <!-- Expansion toggle for directories -->
       <button
         v-if="file.type === 'directory'"
-        @click.stop="$emit('toggle', file.id)"
         class="flex-shrink-0 w-4 h-4 mr-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center justify-center"
+        @click.stop="$emit('toggle', file.id)"
       >
         <svg
           class="w-3 h-3 transition-transform duration-200"
@@ -21,16 +21,27 @@
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5l7 7-7 7"
+          />
         </svg>
       </button>
       
       <!-- Spacer for files to align with directories -->
-      <div v-else class="w-5 flex-shrink-0"></div>
+      <div
+        v-else
+        class="w-5 flex-shrink-0"
+      />
 
       <!-- File/Directory icon -->
       <div class="flex-shrink-0 w-4 h-4 mr-2">
-        <component :is="getFileIcon()" :class="getIconColor()" />
+        <component
+          :is="getFileIcon()"
+          :class="getIconColor()"
+        />
       </div>
 
       <!-- File name -->
@@ -71,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, type VNode } from 'vue'
 import type { FileInfo } from '@/services/api'
 
 interface Props {
@@ -126,7 +137,7 @@ function getFileIcon() {
   const ext = props.file.extension?.toLowerCase()
   
   // File type icons
-  const icons: Record<string, () => any> = {
+  const icons: Record<string, () => VNode> = {
     // Code files
     '.js': getJavaScriptIcon,
     '.jsx': getReactIcon,

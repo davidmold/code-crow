@@ -8,10 +8,10 @@
         </h3>
         <div class="flex items-center space-x-2">
           <button
-            @click="refreshFiles"
             :disabled="projectStore.isLoadingFiles"
             class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-50"
             title="Refresh files"
+            @click="refreshFiles"
           >
             <svg
               class="w-4 h-4"
@@ -20,13 +20,18 @@
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           </button>
           <button
-            @click="toggleCollapseAll"
             class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             :title="allCollapsed ? 'Expand all' : 'Collapse all'"
+            @click="toggleCollapseAll"
           >
             <svg
               class="w-4 h-4"
@@ -54,7 +59,10 @@
       </div>
       
       <!-- Project info -->
-      <div v-if="projectStore.hasCurrentProject" class="mt-2">
+      <div
+        v-if="projectStore.hasCurrentProject"
+        class="mt-2"
+      >
         <p class="text-sm text-gray-600 dark:text-gray-300 truncate">
           {{ projectStore.currentProject?.name }}
         </p>
@@ -72,10 +80,20 @@
           type="text"
           placeholder="Search files..."
           class="w-full px-3 py-2 pl-8 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-        />
+        >
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          <svg
+            class="h-4 w-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
       </div>
@@ -84,29 +102,67 @@
     <!-- File tree -->
     <div class="flex-1 overflow-y-auto">
       <!-- Loading state -->
-      <div v-if="projectStore.isLoadingFiles" class="p-4 text-center">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading files...</p>
+      <div
+        v-if="projectStore.isLoadingFiles"
+        class="p-4 text-center"
+      >
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto" />
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Loading files...
+        </p>
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="!projectStore.hasFiles && !projectStore.isLoadingFiles" class="p-4 text-center">
-        <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      <div
+        v-else-if="!projectStore.hasFiles && !projectStore.isLoadingFiles"
+        class="p-4 text-center"
+      >
+        <svg
+          class="mx-auto h-8 w-8 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No files found</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          No files found
+        </p>
       </div>
 
       <!-- No project selected -->
-      <div v-else-if="!projectStore.hasCurrentProject" class="p-4 text-center">
-        <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-4H5m14 8H5m14 4H5"/>
+      <div
+        v-else-if="!projectStore.hasCurrentProject"
+        class="p-4 text-center"
+      >
+        <svg
+          class="mx-auto h-8 w-8 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 11H5m14-4H5m14 8H5m14 4H5"
+          />
         </svg>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Select a project to view files</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Select a project to view files
+        </p>
       </div>
 
       <!-- File tree -->
-      <div v-else class="p-2">
+      <div
+        v-else
+        class="p-2"
+      >
         <FileTreeNode
           v-for="file in filteredFiles"
           :key="file.id"
@@ -120,7 +176,10 @@
     </div>
 
     <!-- Selected file info -->
-    <div v-if="projectStore.selectedFile" class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
+    <div
+      v-if="projectStore.selectedFile"
+      class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4"
+    >
       <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">
         Selected File
       </h4>
@@ -183,6 +242,17 @@ function selectFile(file: FileInfo) {
   projectStore.selectFile(file)
 }
 
+function addAllDirectories(files: FileInfo[]) {
+  for (const file of files) {
+    if (file.type === 'directory') {
+      expandedNodes.value.add(file.id)
+      if (file.children) {
+        addAllDirectories(file.children)
+      }
+    }
+  }
+}
+
 function toggleNode(fileId: string) {
   if (expandedNodes.value.has(fileId)) {
     expandedNodes.value.delete(fileId)
@@ -194,16 +264,6 @@ function toggleNode(fileId: string) {
 function toggleCollapseAll() {
   if (allCollapsed.value) {
     // Expand all directories
-    function addAllDirectories(files: FileInfo[]) {
-      for (const file of files) {
-        if (file.type === 'directory') {
-          expandedNodes.value.add(file.id)
-          if (file.children) {
-            addAllDirectories(file.children)
-          }
-        }
-      }
-    }
     addAllDirectories(projectStore.projectFiles)
   } else {
     // Collapse all
@@ -239,32 +299,32 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function expandMatchingParents(files: FileInfo[], query: string, parentExpanded = false) {
+  for (const file of files) {
+    if (file.type === 'directory') {
+      if (file.name.toLowerCase().includes(query.toLowerCase()) || parentExpanded) {
+        expandedNodes.value.add(file.id)
+      }
+      
+      if (file.children) {
+        const hasMatchingChild = file.children.some(child => 
+          child.name.toLowerCase().includes(query.toLowerCase())
+        )
+        expandMatchingParents(file.children, query, hasMatchingChild)
+        
+        if (hasMatchingChild) {
+          expandedNodes.value.add(file.id)
+        }
+      }
+    }
+  }
+}
+
 // Auto-expand search results
 watch(searchQuery, (newQuery) => {
   if (newQuery) {
     // Auto-expand directories that contain matches
-    function expandMatchingParents(files: FileInfo[], parentExpanded = false) {
-      for (const file of files) {
-        if (file.type === 'directory') {
-          if (file.name.toLowerCase().includes(newQuery.toLowerCase()) || parentExpanded) {
-            expandedNodes.value.add(file.id)
-          }
-          
-          if (file.children) {
-            const hasMatchingChild = file.children.some(child => 
-              child.name.toLowerCase().includes(newQuery.toLowerCase())
-            )
-            expandMatchingParents(file.children, hasMatchingChild)
-            
-            if (hasMatchingChild) {
-              expandedNodes.value.add(file.id)
-            }
-          }
-        }
-      }
-    }
-    
-    expandMatchingParents(projectStore.projectFiles)
+    expandMatchingParents(projectStore.projectFiles, newQuery)
   }
 })
 </script>

@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { webSocketService, type WebSocketServiceEvents } from '../services/websocket'
+import { webSocketService } from '../services/websocket'
 import { 
   ConnectionState, 
   CONNECTION_STATES, 
-  CommandResult, 
   ConnectionStatus, 
   ErrorMessage 
 } from '@code-crow/shared'

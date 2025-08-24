@@ -5,9 +5,18 @@ import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 
+// Type declarations for Monaco environment
+declare global {
+  interface Window {
+    MonacoEnvironment?: {
+      getWorker(moduleId: unknown, label: string): Worker
+    }
+  }
+}
+
 if (typeof window !== 'undefined') {
-  (self as any).MonacoEnvironment = {
-    getWorker(_: any, label: string) {
+  (self as unknown as Window).MonacoEnvironment = {
+    getWorker(_: unknown, label: string) {
       switch (label) {
         case 'typescript':
         case 'javascript':

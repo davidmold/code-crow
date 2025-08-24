@@ -7,18 +7,28 @@
       </h2>
       <div class="flex items-center space-x-2">
         <button
-          @click="showAddProjectModal = true"
           class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          @click="showAddProjectModal = true"
         >
-          <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          <svg
+            class="mr-2 h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
           </svg>
           Add Project
         </button>
         <button
-          @click="projectStore.loadProjects()"
           :disabled="projectStore.isLoadingProjects"
           class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="projectStore.loadProjects()"
         >
           <svg
             class="mr-2 h-4 w-4"
@@ -27,7 +37,12 @@
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
           </svg>
           Refresh
         </button>
@@ -37,21 +52,34 @@
     <!-- Search -->
     <div class="relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <svg
+          class="h-5 w-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       </div>
       <input
         v-model="searchQuery"
-        @input="onSearchChange"
         type="text"
         placeholder="Search projects..."
         class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-      />
+        @input="onSearchChange"
+      >
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" v-if="projectStore.hasProjects">
+    <div
+      v-if="projectStore.hasProjects"
+      class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+    >
       <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
           <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
@@ -85,32 +113,55 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="projectStore.isLoadingProjects && !projectStore.hasProjects" class="text-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
+    <div
+      v-if="projectStore.isLoadingProjects && !projectStore.hasProjects"
+      class="text-center py-12"
+    >
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+        Loading projects...
+      </p>
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!projectStore.hasProjects && !projectStore.isLoadingProjects" class="text-center py-12">
-      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-4H5m14 8H5m14 4H5"/>
+    <div
+      v-else-if="!projectStore.hasProjects && !projectStore.isLoadingProjects"
+      class="text-center py-12"
+    >
+      <svg
+        class="mx-auto h-12 w-12 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 11H5m14-4H5m14 8H5m14 4H5"
+        />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No projects</h3>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+        No projects
+      </h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         No projects found. Try refreshing or check your configuration.
       </p>
     </div>
 
     <!-- Project grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      v-else
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
       <div
         v-for="project in displayedProjects"
         :key="project.id"
-        @click="selectProject(project)"
         class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 flex flex-col"
         :class="{
           'ring-2 ring-blue-500 ring-opacity-60': projectStore.currentProject?.id === project.id
         }"
+        @click="selectProject(project)"
       >
         <div class="px-4 py-5 sm:p-6 flex-grow">
           <!-- Header -->
@@ -118,7 +169,10 @@
             <div class="flex items-center min-w-0 flex-1">
               <div class="flex-shrink-0">
                 <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <component :is="getProjectIcon(project.type)" class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <component
+                    :is="getProjectIcon(project.type)"
+                    class="w-6 h-6 text-blue-600 dark:text-blue-400"
+                  />
                 </div>
               </div>
               <div class="ml-4 min-w-0 flex-1">
@@ -141,7 +195,10 @@
           </div>
 
           <!-- Description -->
-          <div class="mt-3" v-if="project.description">
+          <div
+            v-if="project.description"
+            class="mt-3"
+          >
             <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
               {{ project.description }}
             </p>
@@ -154,7 +211,10 @@
           </div>
 
           <!-- Package manager -->
-          <div class="mt-2" v-if="project.packageManager">
+          <div
+            v-if="project.packageManager"
+            class="mt-2"
+          >
             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
               {{ project.packageManager }}
             </span>
@@ -165,15 +225,15 @@
         <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3">
           <div class="flex items-center justify-between">
             <button
-              @click.stop="openProject(project)"
               class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+              @click.stop="openProject(project)"
             >
               Open Project
             </button>
             <button
               v-if="project.gitRepository"
-              @click.stop="openGitRepo(project.gitRepository)"
               class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200"
+              @click.stop="openGitRepo(project.gitRepository)"
             >
               View Repo
             </button>
@@ -183,10 +243,13 @@
     </div>
 
     <!-- Load more -->
-    <div v-if="hasMoreProjects" class="text-center">
+    <div
+      v-if="hasMoreProjects"
+      class="text-center"
+    >
       <button
-        @click="loadMore"
         class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        @click="loadMore"
       >
         Load More Projects
       </button>
@@ -202,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h, type VNode } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -283,7 +346,7 @@ function formatDate(dateString: string) {
 }
 
 function getProjectIcon(type: string) {
-  const icons: Record<string, () => any> = {
+  const icons: Record<string, () => VNode> = {
     node: () => h('svg', {
       fill: 'currentColor',
       viewBox: '0 0 24 24'

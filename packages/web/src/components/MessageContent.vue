@@ -1,5 +1,10 @@
 <template>
-  <div class="message-content" v-html="formattedContent"></div>
+  <!-- eslint-disable vue/no-v-html -->
+  <div
+    class="message-content"
+    v-html="formattedContent"
+  />
+  <!-- eslint-enable vue/no-v-html -->
 </template>
 
 <script setup lang="ts">

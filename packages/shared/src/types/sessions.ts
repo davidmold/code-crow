@@ -118,7 +118,7 @@ export interface SessionEvent {
   sessionId: string;
   projectId: string;
   timestamp: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface SessionMetrics {

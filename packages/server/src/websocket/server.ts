@@ -1,30 +1,44 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { 
-  SOCKET_EVENTS, 
-  MessageFactory, 
-  RoomManager, 
-  ConnectionAuth,
-  ExecuteCommand,
-  JoinProject,
-  LeaveProject,
-  ConnectionResult,
-  CommandResult,
-  ErrorMessage,
-  AgentCommand,
-  CommandResponse,
-  AgentStatus,
-  FileChange,
-  ConnectionStatus,
-  ApiOptionsHelper
-} from '@code-crow/shared';
+import { SOCKET_EVENTS } from '@code-crow/shared';
 import { SessionManager } from '../services/sessionManager.js';
+import { AuthenticationHandler } from './handlers/AuthenticationHandler.js';
+import { CommandHandler } from './handlers/CommandHandler.js';
+import { SessionHandler } from './handlers/SessionHandler.js';
+import { ConnectionManager } from './handlers/ConnectionManager.js';
+
+const WEBSOCKET_CONFIG = {
+  TIMEOUTS: {
+    AUTH: 10000,        // 10 seconds
+    SESSION: 300000,    // 5 minutes  
+    STALE_CONNECTION: 60000, // 1 minute
+  },
+  INTERVALS: {
+    HEARTBEAT: 30000,   // 30 seconds
+    PING: 25000,        // 25 seconds
+  },
+  SOCKET: {
+    PING_TIMEOUT: 60000,
+    PING_INTERVAL: 25000,
+  }
+} as const;
+
+interface ClientInfo {
+  socket: Socket;
+  type: 'web' | 'agent';
+  lastSeen: Date;
+}
 
 export class WebSocketServer {
   private io: SocketIOServer;
-  private clients = new Map<string, { socket: Socket; type: 'web' | 'agent'; lastSeen: Date }>();
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private clients = new Map<string, ClientInfo>();
   private sessionManager: SessionManager;
+
+  // Handler instances
+  private authHandler!: AuthenticationHandler;
+  private commandHandler!: CommandHandler;
+  private sessionHandler!: SessionHandler;
+  private connectionManager!: ConnectionManager;
 
   constructor(httpServer: HttpServer) {
     this.io = new SocketIOServer(httpServer, {
@@ -33,443 +47,125 @@ export class WebSocketServer {
         methods: ['GET', 'POST']
       },
       transports: ['websocket', 'polling'],
-      pingTimeout: 60000,
-      pingInterval: 25000
+      pingTimeout: WEBSOCKET_CONFIG.SOCKET.PING_TIMEOUT,
+      pingInterval: WEBSOCKET_CONFIG.SOCKET.PING_INTERVAL
     });
 
     this.sessionManager = SessionManager.getInstance();
+    
+    // Initialize handlers
+    this.initializeHandlers();
+    
+    // Setup core event handlers
     this.setupEventHandlers();
-    this.startHeartbeat();
+    this.connectionManager.startHeartbeat();
   }
 
-  private setupEventHandlers() {
+  private initializeHandlers(): void {
+    // Initialize connection manager first
+    this.connectionManager = new ConnectionManager(
+      this.clients,
+      this.sessionManager,
+      this.forwardToClientType.bind(this),
+      this.broadcastToRoom.bind(this),
+      this.io,
+      WEBSOCKET_CONFIG.TIMEOUTS.STALE_CONNECTION,
+      WEBSOCKET_CONFIG.INTERVALS.HEARTBEAT
+    );
+
+    // Initialize other handlers
+    this.commandHandler = new CommandHandler(
+      this.sessionManager,
+      this.broadcastToRoom.bind(this),
+      WEBSOCKET_CONFIG.TIMEOUTS.SESSION
+    );
+
+    this.sessionHandler = new SessionHandler(
+      this.broadcastToRoom.bind(this)
+    );
+
+    // Initialize auth handler with connection manager reference
+    this.authHandler = new AuthenticationHandler(
+      this.clients,
+      this.setupWebHandlers.bind(this),
+      this.setupAgentHandlers.bind(this),
+      this.connectionManager.broadcastConnectionStatus.bind(this.connectionManager)
+    );
+  }
+
+  private forwardToClientType(clientType: 'web' | 'agent', event: string, data: unknown): void {
+    this.clients.forEach((client) => {
+      if (client.type === clientType) {
+        client.socket.emit(event, data);
+      }
+    });
+  }
+
+  private broadcastToRoom(roomName: string, event: string, data: unknown): void {
+    this.io.to(roomName).emit(event, data);
+  }
+
+  private setupEventHandlers(): void {
     this.io.on(SOCKET_EVENTS.CONNECTION, (socket: Socket) => {
       console.log(`🔌 New connection: ${socket.id}`);
-      
-      // Handle authentication
-      socket.on(SOCKET_EVENTS.AUTH, (data: ConnectionAuth) => {
-        this.handleAuth(socket, data);
-      });
-
-      // Handle disconnection
-      socket.on(SOCKET_EVENTS.DISCONNECT, (reason: string) => {
-        this.handleDisconnect(socket, reason);
-      });
-
-      // Set up timeout for authentication
-      const authTimeout = setTimeout(() => {
-        if (!this.clients.has(socket.id)) {
-          console.log(`⏰ Authentication timeout for ${socket.id}`);
-          socket.disconnect();
-        }
-      }, 10000); // 10 second auth timeout
-
-      socket.once(SOCKET_EVENTS.AUTH, () => {
-        clearTimeout(authTimeout);
-      });
+      this.setupConnectionHandlers(socket);
+      this.authHandler.setupAuthenticationTimeout(socket, WEBSOCKET_CONFIG.TIMEOUTS.AUTH);
     });
   }
 
-  private handleAuth(socket: Socket, data: ConnectionAuth) {
-    try {
-      console.log(`🔐 Authentication request from ${socket.id}: ${data.clientType}`);
-      
-      // Validate auth data
-      if (!data.clientType || !['web', 'agent'].includes(data.clientType)) {
-        const errorResponse: ErrorMessage = MessageFactory.createMessage('error', {
-          error: {
-            code: 'INVALID_CLIENT_TYPE',
-            message: 'Client type must be "web" or "agent"'
-          }
-        });
-        socket.emit(SOCKET_EVENTS.ERROR, errorResponse);
-        socket.disconnect();
-        return;
-      }
+  private setupConnectionHandlers(socket: Socket): void {
+    // Handle authentication
+    socket.on(SOCKET_EVENTS.AUTH, (data) => {
+      this.authHandler.handleAuth(socket, data);
+    });
 
-      // Store client info
-      this.clients.set(socket.id, {
-        socket,
-        type: data.clientType,
-        lastSeen: new Date()
-      });
-
-      // Join appropriate rooms
-      if (data.clientType === 'agent') {
-        socket.join(RoomManager.getAgentRoom());
-        this.setupAgentHandlers(socket);
-      } else {
-        socket.join(RoomManager.getWebRoom());
-        this.setupWebHandlers(socket);
-      }
-
-      // Send authentication success
-      const authResult: ConnectionResult = MessageFactory.createMessage('auth_result', {
-        success: true,
-        clientId: socket.id
-      });
-      socket.emit(SOCKET_EVENTS.AUTH_RESULT, authResult);
-
-      // Send immediate connection status to the authenticated client
-      const agents = Array.from(this.clients.values()).filter(c => c.type === 'agent');
-      const connectionStatus: ConnectionStatus = MessageFactory.createMessage('connection_status', {
-        agentConnected: agents.length > 0,
-        activeAgents: agents.length,
-        serverStatus: 'healthy'
-      });
-      
-      console.log(`📡 Sending connection status to ${socket.id}:`, {
-        agentConnected: connectionStatus.agentConnected,
-        activeAgents: connectionStatus.activeAgents,
-        serverStatus: connectionStatus.serverStatus
-      });
-      
-      socket.emit(SOCKET_EVENTS.CONNECTION_STATUS, connectionStatus);
-
-      // Also broadcast to all web clients
-      this.broadcastConnectionStatus();
-
-      console.log(`✅ ${data.clientType} client authenticated: ${socket.id}`);
-    } catch (error) {
-      console.error('Authentication error:', error);
-      const errorResponse: ErrorMessage = MessageFactory.createMessage('error', {
-        error: {
-          code: 'AUTH_ERROR',
-          message: 'Authentication failed'
-        }
-      });
-      socket.emit(SOCKET_EVENTS.ERROR, errorResponse);
-      socket.disconnect();
-    }
+    // Handle disconnection
+    socket.on(SOCKET_EVENTS.DISCONNECT, (reason: string) => {
+      this.connectionManager.handleDisconnect(socket, reason);
+    });
   }
 
-  private setupWebHandlers(socket: Socket) {
+  private setupWebHandlers(socket: Socket): void {
     // Execute command handler
-    socket.on(SOCKET_EVENTS.EXECUTE_COMMAND, (data: ExecuteCommand) => {
-      this.handleExecuteCommand(socket, data);
-    });
-
-    // Project room management
-    socket.on(SOCKET_EVENTS.JOIN_PROJECT, (data: JoinProject) => {
-      const projectRoom = RoomManager.getProjectRoom(data.projectId);
-      socket.join(projectRoom);
-      console.log(`📁 ${socket.id} joined project ${data.projectId}`);
-    });
-
-    socket.on(SOCKET_EVENTS.LEAVE_PROJECT, (data: LeaveProject) => {
-      const projectRoom = RoomManager.getProjectRoom(data.projectId);
-      socket.leave(projectRoom);
-      console.log(`📁 ${socket.id} left project ${data.projectId}`);
-    });
-
-    // Permission response handler
-    socket.on('permission:response', (response: any) => {
-      console.log(`🔐 Forwarding permission response from web client: ${response.requestId} -> ${response.decision}`);
-      
-      // Forward to all agents (they will filter by requestId)
-      this.io.sockets.sockets.forEach((agentSocket) => {
-        const agentClient = this.clients.get(agentSocket.id);
-        if (agentClient && agentClient.type === 'agent') {
-          agentSocket.emit('permission:response', response);
-        }
-      });
+    socket.on(SOCKET_EVENTS.EXECUTE_COMMAND, (data) => {
+      this.commandHandler.handleExecuteCommand(socket, data);
     });
 
     // Session management
-    socket.on('session:clear', (data: { sessionId: string }) => {
-      console.log(`🗑️ Session clear request from web client ${socket.id}: ${data.sessionId}`);
-      // Forward to agents
-      this.io.to(RoomManager.getAgentRoom()).emit('session:clear', data);
-    });
+    this.sessionHandler.setupWebHandlers(socket);
 
-    socket.on('session:status', (data: { sessionId: string }) => {
-      console.log(`📊 Session status request from web client ${socket.id}: ${data.sessionId}`);
-      // Forward to agents
-      this.io.to(RoomManager.getAgentRoom()).emit('session:status', data);
-    });
+    // Permission handling
+    this.connectionManager.setupPermissionHandlers(socket);
 
     // Heartbeat
-    socket.on(SOCKET_EVENTS.HEARTBEAT, () => {
-      this.updateClientLastSeen(socket.id);
-      socket.emit(SOCKET_EVENTS.HEARTBEAT_RESPONSE, {
-        serverTime: new Date().toISOString()
-      });
-    });
+    this.connectionManager.setupHeartbeat(socket);
   }
 
-  private setupAgentHandlers(socket: Socket) {
+  private setupAgentHandlers(socket: Socket): void {
     // Command response handler
-    socket.on(SOCKET_EVENTS.COMMAND_RESPONSE, (data: CommandResponse) => {
-      this.handleCommandResponse(socket, data);
+    socket.on(SOCKET_EVENTS.COMMAND_RESPONSE, (data) => {
+      this.commandHandler.handleCommandResponse(socket, data);
     });
 
-    // Agent status handler
-    socket.on(SOCKET_EVENTS.AGENT_STATUS, (data: AgentStatus) => {
-      console.log(`🤖 Agent status update: ${data.status}`);
-      // Could broadcast this to interested web clients
-    });
+    // Session management
+    this.sessionHandler.setupAgentHandlers(socket);
 
-    // File change handler
-    socket.on(SOCKET_EVENTS.FILE_CHANGE, (data: FileChange) => {
-      this.handleFileChange(socket, data);
-    });
+    // Agent-specific handlers
+    this.connectionManager.setupAgentSpecificHandlers(socket);
 
-    // Permission request handler
-    socket.on('permission:request', (request: any) => {
-      console.log(`🔐 Forwarding permission request from agent: ${request.id} for ${request.toolName}`);
-      
-      // Forward to all web clients
-      this.io.sockets.sockets.forEach((webSocket) => {
-        const webClient = this.clients.get(webSocket.id);
-        if (webClient && webClient.type === 'web') {
-          webSocket.emit('permission:request', request);
-        }
-      });
-    });
-
-    // Permission timeout handler
-    socket.on('permission:timeout', (data: any) => {
-      console.log(`⏰ Permission timeout: ${data.requestId}`);
-      
-      // Forward timeout notification to web clients
-      this.io.sockets.sockets.forEach((webSocket) => {
-        const webClient = this.clients.get(webSocket.id);
-        if (webClient && webClient.type === 'web') {
-          webSocket.emit('permission:timeout', data);
-        }
-      });
-    });
-
-    // Session management handlers
-    socket.on('session:cleared', (data: { sessionId: string }) => {
-      console.log(`🗑️ Agent ${socket.id} cleared session: ${data.sessionId}`);
-      // Forward to web clients
-      this.io.to(RoomManager.getWebRoom()).emit('session:cleared', data);
-    });
-
-    socket.on('session:status', (data: { sessionId: string, exists: boolean, info: any }) => {
-      console.log(`📊 Agent ${socket.id} session status: ${data.sessionId} (exists: ${data.exists})`);
-      // Forward to web clients
-      this.io.to(RoomManager.getWebRoom()).emit('session:status', data);
-    });
-
-    socket.on('session:error', (data: { sessionId: string, error: string }) => {
-      console.log(`❌ Agent ${socket.id} session error: ${data.sessionId} - ${data.error}`);
-      // Forward to web clients
-      this.io.to(RoomManager.getWebRoom()).emit('session:error', data);
-    });
+    // Permission handling
+    this.connectionManager.setupPermissionHandlers(socket);
 
     // Heartbeat
-    socket.on(SOCKET_EVENTS.HEARTBEAT, () => {
-      this.updateClientLastSeen(socket.id);
-      socket.emit(SOCKET_EVENTS.HEARTBEAT_RESPONSE, {
-        serverTime: new Date().toISOString()
-      });
-    });
-  }
-
-  private async handleExecuteCommand(socket: Socket, data: ExecuteCommand) {
-    try {
-      console.log(`⚡ Execute command from ${socket.id}: ${data.command}`);
-      
-      // Merge backwards compatibility options into apiOptions
-      const mergedApiOptions = ApiOptionsHelper.mergeCompatibilityOptions(
-        data.apiOptions,
-        {
-          ...(data.workingDirectory ? { workingDirectory: data.workingDirectory } : {}),
-          ...(data.continueSession !== undefined ? { continueSession: data.continueSession } : {})
-          // Note: data.options only contains { newSession?: boolean } so we don't merge those Claude Code options here
-        }
-      );
-
-      console.log(`🔍 Debug - merged apiOptions:`, JSON.stringify(mergedApiOptions, null, 2));
-      
-      // Use the session ID provided by the client
-      const sessionId = data.sessionId;
-      
-      if (!sessionId) {
-        throw new Error('Session ID is required from client');
-      }
-      
-      // Create session record with the client's session ID
-      const sessionResult = await this.sessionManager.createSession({
-        projectId: data.projectId,
-        sessionId: sessionId, // Use client's session ID
-        ...(data.command ? { initialCommand: data.command } : {}),
-        ...(data.workingDirectory ? { workingDirectory: data.workingDirectory } : {}),
-        ...(socket.id ? { clientId: socket.id } : {}),
-        options: {
-          timeoutMs: 300000 // 5 minutes
-        }
-      });
-
-      if (!sessionResult.success) {
-        throw new Error(sessionResult.error || 'Failed to create session');
-      }
-      
-      // Create agent command with merged options
-      const agentCommand: AgentCommand = MessageFactory.createMessage('agent_command', {
-        sessionId,
-        command: data.command,
-        projectId: data.projectId,
-        apiOptions: {
-          ...mergedApiOptions,
-          // Ensure we have a default timeout if not specified
-          timeoutMs: mergedApiOptions.timeoutMs || 300000
-        }
-      });
-
-      // Send to agents
-      this.io.to(RoomManager.getAgentRoom()).emit(SOCKET_EVENTS.AGENT_COMMAND, agentCommand);
-      
-      console.log(`📤 Forwarded command to agents: ${sessionId}`);
-    } catch (error) {
-      console.error('Execute command error:', error);
-      const errorResponse: ErrorMessage = MessageFactory.createMessage('error', {
-        error: {
-          code: 'EXECUTE_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to execute command'
-        },
-        sessionId: data.sessionId
-      });
-      socket.emit(SOCKET_EVENTS.ERROR, errorResponse);
-    }
-  }
-
-  private async handleCommandResponse(_socket: Socket, data: CommandResponse) {
-    try {
-      console.log(`📥 Command response from agent: ${data.sessionId}`);
-      
-      // Get session to find which web client to respond to
-      const session = this.sessionManager.getSession(data.sessionId);
-      if (!session) {
-        console.warn(`Session not found: ${data.sessionId}`);
-        return;
-      }
-
-      // Add response to session
-      this.sessionManager.addResponse(data.sessionId, {
-        id: `response_${Date.now()}`,
-        sessionId: data.sessionId,
-        commandId: `command_${Date.now()}`,
-        type: data.error ? 'error' : 'text',
-        content: data.data,
-        timestamp: new Date().toISOString(),
-        isStreaming: !data.isComplete
-      });
-
-      // Update session if complete
-      if (data.isComplete) {
-        await this.sessionManager.updateSession({
-          sessionId: data.sessionId,
-          updates: {
-            status: data.error ? 'error' : 'complete'
-          }
-        });
-      }
-
-      // Forward response to web client
-      const commandResult: CommandResult = MessageFactory.createMessage('command_result', {
-        sessionId: data.sessionId,
-        response: data.data,
-        status: data.error ? 'error' : (data.isComplete ? 'complete' : 'streaming'),
-        ...(data.claudeSessionId ? { claudeSessionId: data.claudeSessionId } : {})
-      });
-
-      // Send to specific client
-      if (session.clientId) {
-        const client = this.clients.get(session.clientId);
-        if (client) {
-          client.socket.emit(SOCKET_EVENTS.COMMAND_RESULT, commandResult);
-        }
-      }
-
-      console.log(`📤 Forwarded response to web client: ${data.sessionId}`);
-    } catch (error) {
-      console.error('Command response error:', error);
-    }
-  }
-
-  private handleFileChange(_socket: Socket, data: FileChange) {
-    try {
-      // Get session to find project
-      const session = this.sessionManager.getSession(data.sessionId);
-      if (session) {
-        // Broadcast file change to project room
-        const projectRoom = RoomManager.getProjectRoom(session.projectId);
-        this.io.to(projectRoom).emit(SOCKET_EVENTS.FILE_CHANGE, data);
-        console.log(`📝 File change broadcasted: ${data.filePath}`);
-      }
-    } catch (error) {
-      console.error('File change error:', error);
-    }
-  }
-
-  private handleDisconnect(socket: Socket, reason: string) {
-    console.log(`🔌 Disconnection: ${socket.id} (${reason})`);
-    
-    const client = this.clients.get(socket.id);
-    if (client) {
-      // Clean up any active sessions for this client
-      const activeSessions = this.sessionManager.getActiveSessions();
-      for (const session of activeSessions) {
-        if (session.clientId === socket.id) {
-          this.sessionManager.cancelSession(session.id, 'Client disconnected');
-        }
-      }
-    }
-
-    this.clients.delete(socket.id);
-    this.broadcastConnectionStatus();
-  }
-
-  private updateClientLastSeen(socketId: string) {
-    const client = this.clients.get(socketId);
-    if (client) {
-      client.lastSeen = new Date();
-    }
-  }
-
-  private broadcastConnectionStatus() {
-    const agents = Array.from(this.clients.values()).filter(c => c.type === 'agent');
-    const connectionStatus: ConnectionStatus = MessageFactory.createMessage('connection_status', {
-      agentConnected: agents.length > 0,
-      activeAgents: agents.length,
-      serverStatus: 'healthy'
-    });
-
-    this.io.to(RoomManager.getWebRoom()).emit(SOCKET_EVENTS.CONNECTION_STATUS, connectionStatus);
-  }
-
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      // Clean up old sessions
-      // Session cleanup happens automatically via the SessionManager's internal interval
-      
-      // Check for stale connections
-      const now = new Date();
-      for (const [socketId, client] of this.clients.entries()) {
-        const timeSinceLastSeen = now.getTime() - client.lastSeen.getTime();
-        if (timeSinceLastSeen > 60000) { // 60 seconds
-          console.log(`🕰️ Stale connection detected: ${socketId}`);
-          client.socket.disconnect();
-        }
-      }
-    }, 30000); // Every 30 seconds
+    this.connectionManager.setupHeartbeat(socket);
   }
 
   public getConnectedClients() {
-    return {
-      total: this.clients.size,
-      web: Array.from(this.clients.values()).filter(c => c.type === 'web').length,
-      agents: Array.from(this.clients.values()).filter(c => c.type === 'agent').length
-    };
+    return this.connectionManager.getConnectedClients();
   }
 
   public stop() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-    }
+    this.connectionManager.stopHeartbeat();
     this.sessionManager.stop();
     this.io.close();
   }

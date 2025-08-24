@@ -121,7 +121,7 @@ export class RoomManagerService {
       }));
   }
 
-  broadcastToRoom(roomName: string, event: string, data: any): boolean {
+  broadcastToRoom(roomName: string, event: string, data: unknown): boolean {
     try {
       this.io.to(roomName).emit(event, data);
       console.log(`📢 Broadcasted ${event} to room ${roomName}`);
@@ -132,17 +132,17 @@ export class RoomManagerService {
     }
   }
 
-  broadcastToProject(projectId: string, event: string, data: any): boolean {
+  broadcastToProject(projectId: string, event: string, data: unknown): boolean {
     const roomName = RoomManager.getProjectRoom(projectId);
     return this.broadcastToRoom(roomName, event, data);
   }
 
-  broadcastToWebClients(event: string, data: any): boolean {
+  broadcastToWebClients(event: string, data: unknown): boolean {
     const roomName = RoomManager.getWebRoom();
     return this.broadcastToRoom(roomName, event, data);
   }
 
-  broadcastToAgents(event: string, data: any): boolean {
+  broadcastToAgents(event: string, data: unknown): boolean {
     const roomName = RoomManager.getAgentRoom();
     return this.broadcastToRoom(roomName, event, data);
   }

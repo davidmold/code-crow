@@ -73,7 +73,7 @@ export function useWebSocket() {
 
 // Specialized composable for command execution
 export function useCommandExecution() {
-  const { executeCommand, onCommandResult, isConnected } = useWebSocket()
+  const { executeCommand, onCommandResult } = useWebSocket()
   
   const activeSessions = ref(new Map<string, {
     command: string
@@ -151,7 +151,7 @@ export function useCommandExecution() {
       webSocketService.on('sessionCleared', callback)
       return () => webSocketService.off('sessionCleared', callback)
     },
-    onSessionStatus: (callback: (data: { sessionId: string, exists: boolean, info: any }) => void) => {
+    onSessionStatus: (callback: (data: { sessionId: string, exists: boolean, info: Record<string, unknown> }) => void) => {
       webSocketService.on('sessionStatus', callback)
       return () => webSocketService.off('sessionStatus', callback)
     },

@@ -123,7 +123,7 @@ export interface CommandResult extends BaseMessage {
 export interface ProjectUpdate extends BaseMessage {
   type: 'project_update';
   projectId: string;
-  files?: any[];
+  files?: unknown[];
   changes?: FileChange[];
 }
 
@@ -140,7 +140,7 @@ export interface ErrorMessage extends BaseMessage {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
   sessionId?: string;
 }

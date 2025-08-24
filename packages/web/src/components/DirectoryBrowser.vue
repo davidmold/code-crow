@@ -1,10 +1,13 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
+  <div
+    v-if="isOpen"
+    class="fixed inset-0 z-50 overflow-y-auto"
+  >
     <!-- Backdrop -->
     <div 
       class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
       @click="closeModal"
-    ></div>
+    />
 
     <!-- Modal -->
     <div class="flex min-h-full items-center justify-center p-4">
@@ -16,11 +19,21 @@
               Browse for Project Directory
             </h3>
             <button
-              @click="closeModal"
               class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              @click="closeModal"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -39,10 +52,10 @@
                 type="text"
                 class="flex-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 @keyup.enter="navigateToPath"
-              />
+              >
               <button
-                @click="navigateToPath"
                 class="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600 dark:text-blue-100 dark:hover:bg-blue-500 rounded-md transition-colors"
+                @click="navigateToPath"
               >
                 Go
               </button>
@@ -52,38 +65,76 @@
           <!-- Navigation -->
           <div class="mb-4 flex items-center space-x-2">
             <button
-              @click="navigateUp"
               :disabled="isLoading || currentPath === '/'"
               class="flex items-center px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="navigateUp"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              <svg
+                class="w-4 h-4 mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Up
             </button>
             <button
-              @click="goHome"
               :disabled="isLoading"
               class="flex items-center px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="goHome"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+              <svg
+                class="w-4 h-4 mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
               </svg>
               Home
             </button>
           </div>
 
           <!-- Loading state -->
-          <div v-if="isLoading" class="text-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading directories...</p>
+          <div
+            v-if="isLoading"
+            class="text-center py-8"
+          >
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Loading directories...
+            </p>
           </div>
 
           <!-- Error state -->
-          <div v-else-if="error" class="p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
+          <div
+            v-else-if="error"
+            class="p-4 bg-red-50 dark:bg-red-900/20 rounded-md"
+          >
             <div class="flex">
-              <svg class="h-5 w-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <svg
+                class="h-5 w-5 text-red-400 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div class="ml-3">
                 <h3 class="text-sm font-medium text-red-800 dark:text-red-300">
@@ -97,19 +148,29 @@
           </div>
 
           <!-- Directory List -->
-          <div v-else class="border border-gray-200 dark:border-gray-600 rounded-md max-h-64 overflow-y-auto">
-            <div v-if="directories.length === 0" class="p-4 text-center text-gray-500 dark:text-gray-400">
+          <div
+            v-else
+            class="border border-gray-200 dark:border-gray-600 rounded-md max-h-64 overflow-y-auto"
+          >
+            <div
+              v-if="directories.length === 0"
+              class="p-4 text-center text-gray-500 dark:text-gray-400"
+            >
               No subdirectories found
             </div>
             <div v-else>
               <button
                 v-for="directory in directories"
                 :key="directory"
-                @click="navigateToDirectory(directory)"
                 class="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600 last:border-b-0 flex items-center space-x-2"
+                @click="navigateToDirectory(directory)"
               >
-                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                <svg
+                  class="w-4 h-4 text-blue-500 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                 </svg>
                 <span class="text-sm text-gray-900 dark:text-white truncate">
                   {{ directory.split('/').pop() }}
@@ -126,14 +187,14 @@
           </div>
           <div class="flex space-x-3">
             <button
-              @click="closeModal"
               class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-md transition-colors"
+              @click="closeModal"
             >
               Cancel
             </button>
             <button
-              @click="selectCurrentDirectory"
               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md transition-colors"
+              @click="selectCurrentDirectory"
             >
               Select This Directory
             </button>

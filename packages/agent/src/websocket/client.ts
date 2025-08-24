@@ -1,140 +1,46 @@
-import { io, Socket } from 'socket.io-client';
 import { 
   SOCKET_EVENTS,
-  CONNECTION_STATES,
   MessageFactory,
-  ConnectionAuth,
   AgentCommand,
   CommandResponse,
   AgentStatus,
   ErrorMessage,
-  ConnectionState,
-  ApiOptionsHelper
+  ApiOptionsHelper,
+  BaseWebSocketClient,
+  PermissionRequest,
+  PermissionResponse
 } from '@code-crow/shared';
 import { ClaudeCodeService } from '../services/claude-code.service.js';
 
-export class AgentWebSocketClient {
-  private socket: Socket | null = null;
-  private connectionState: ConnectionState = CONNECTION_STATES.DISCONNECTED;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
-  private activeSessions = new Map<string, any>();
+interface ActiveSession {
+  command: string;
+  projectId: string;
+  startTime: Date;
+  status: 'running' | 'completed' | 'error';
+  timeout: number;
+}
+
+export class AgentWebSocketClient extends BaseWebSocketClient {
+  private activeSessions = new Map<string, ActiveSession>();
   private claudeCodeService: ClaudeCodeService;
 
   constructor(
-    private serverUrl: string = 'http://localhost:8080',
-    private clientId: string = `agent-${Date.now()}`
+    serverUrl: string = 'http://localhost:8080',
+    clientId: string = `agent-${Date.now()}`
   ) {
+    super('agent', {
+      serverUrl,
+      clientId,
+      timeout: 10000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      heartbeatInterval: 30000
+    });
     this.claudeCodeService = new ClaudeCodeService();
   }
 
-  async connect(): Promise<boolean> {
-    try {
-      console.log(`🔌 Connecting to server: ${this.serverUrl}`);
-      this.connectionState = CONNECTION_STATES.CONNECTING;
-
-      this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'],
-        timeout: 10000,
-        reconnection: true,
-        reconnectionAttempts: this.maxReconnectAttempts,
-        reconnectionDelay: 2000,
-        autoConnect: false
-      });
-
-      this.setupEventHandlers();
-      this.socket.connect();
-
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Connection timeout'));
-        }, 10000);
-
-        this.socket!.once('connect', () => {
-          clearTimeout(timeout);
-          this.authenticate().then(resolve).catch(reject);
-        });
-
-        this.socket!.once('connect_error', (error) => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-      });
-
-    } catch (error) {
-      console.error('❌ Connection failed:', error);
-      this.connectionState = CONNECTION_STATES.ERROR;
-      return false;
-    }
-  }
-
-  private async authenticate(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Socket not connected'));
-        return;
-      }
-
-      const authData: ConnectionAuth = MessageFactory.createMessage('auth', {
-        clientType: 'agent',
-        clientId: this.clientId,
-        version: '1.0.0'
-      });
-
-      const timeout = setTimeout(() => {
-        reject(new Error('Authentication timeout'));
-      }, 5000);
-
-      this.socket.once(SOCKET_EVENTS.AUTH_RESULT, (data) => {
-        clearTimeout(timeout);
-        if (data.success) {
-          console.log('✅ Agent authenticated successfully');
-          this.connectionState = CONNECTION_STATES.CONNECTED;
-          this.reconnectAttempts = 0;
-          this.startHeartbeat();
-          this.sendStatus('ready');
-          resolve(true);
-        } else {
-          console.error('❌ Authentication failed:', data.message);
-          reject(new Error(data.message || 'Authentication failed'));
-        }
-      });
-
-      this.socket.emit(SOCKET_EVENTS.AUTH, authData);
-    });
-  }
-
-  private setupEventHandlers() {
+  protected setupEventHandlers() {
     if (!this.socket) return;
-
-    // Connection events
-    this.socket.on('connect', () => {
-      console.log('🔌 Connected to server');
-      this.connectionState = CONNECTION_STATES.CONNECTED;
-    });
-
-    this.socket.on('disconnect', (reason) => {
-      console.log(`🔌 Disconnected: ${reason}`);
-      this.connectionState = CONNECTION_STATES.DISCONNECTED;
-      this.stopHeartbeat();
-      
-      if (reason === 'io server disconnect') {
-        // Server disconnected us, don't auto-reconnect
-        console.log('Server disconnected agent, stopping');
-      }
-    });
-
-    this.socket.on('reconnect', (attempt) => {
-      console.log(`🔄 Reconnected after ${attempt} attempts`);
-      this.connectionState = CONNECTION_STATES.CONNECTED;
-      this.authenticate();
-    });
-
-    this.socket.on('reconnect_error', (error) => {
-      console.error('🔄 Reconnection failed:', error);
-      this.connectionState = CONNECTION_STATES.ERROR;
-    });
 
     // Command handling
     this.socket.on(SOCKET_EVENTS.AGENT_COMMAND, (data: AgentCommand) => {
@@ -146,7 +52,7 @@ export class AgentWebSocketClient {
     });
 
     // Permission handling
-    this.socket.on('permission:response', (response: any) => {
+    this.socket.on('permission:response', (response: PermissionResponse) => {
       console.log(`🔐 Received permission response: ${response.requestId} -> ${response.decision}`);
       this.claudeCodeService.handlePermissionResponse(response);
     });
@@ -159,21 +65,24 @@ export class AgentWebSocketClient {
     this.socket.on('session:status', (data: { sessionId: string }) => {
       this.handleSessionStatus(data);
     });
+  }
 
-    // Heartbeat
-    this.socket.on(SOCKET_EVENTS.HEARTBEAT_RESPONSE, () => {
-      // Server responded to heartbeat
-    });
+  protected onAuthenticated(): void {
+    console.log('✅ Agent authenticated successfully');
+    this.sendStatus('ready');
+  }
 
-    // Error handling
-    this.socket.on(SOCKET_EVENTS.ERROR, (error: ErrorMessage) => {
-      console.error('❌ Server error:', error);
-    });
+  protected onDisconnected(reason: string): void {
+    console.log(`🔌 Agent disconnected: ${reason}`);
+    
+    if (reason === 'io server disconnect') {
+      // Server disconnected us, don't auto-reconnect
+      console.log('Server disconnected agent, stopping');
+    }
+  }
 
-    this.socket.on('error', (error) => {
-      console.error('❌ Socket error:', error);
-      this.connectionState = CONNECTION_STATES.ERROR;
-    });
+  protected onError(error: ErrorMessage): void {
+    console.error('❌ Agent server error:', error);
   }
 
   private async handleCommand(command: AgentCommand) {
@@ -227,14 +136,14 @@ export class AgentWebSocketClient {
       }
 
       // Set up permission event handlers for this session
-      const onPermissionRequest = (request: any) => {
+      const onPermissionRequest = (request: PermissionRequest) => {
         if (request.sessionId === sessionId) {
           console.log(`🔐 Forwarding permission request: ${request.id}`);
           this.socket?.emit('permission:request', request);
         }
       };
 
-      const onPermissionTimeout = (data: any) => {
+      const onPermissionTimeout = (data: { requestId: string }) => {
         console.log(`⏰ Permission timeout: ${data.requestId}`);
         this.socket?.emit('permission:timeout', data);
       };
@@ -399,8 +308,6 @@ export class AgentWebSocketClient {
     }
   }
 
-  // Removed handleStreamingResponse - not currently used
-
   private async sendCommandResponse(
     sessionId: string, 
     data: string, 
@@ -410,7 +317,10 @@ export class AgentWebSocketClient {
   ) {
     if (!this.socket) return;
 
-    const responseData: any = {
+    const responseData: CommandResponse = {
+      id: `cmd-${Date.now()}-${Math.random()}`,
+      type: 'command_response' as const,
+      timestamp: new Date().toISOString(),
       sessionId,
       data,
       isComplete
@@ -428,8 +338,6 @@ export class AgentWebSocketClient {
 
     this.socket.emit(SOCKET_EVENTS.COMMAND_RESPONSE, response);
   }
-
-  // Removed sendFileChange method - not currently used
 
   private async handleClearSession(data: { sessionId: string }) {
     try {
@@ -468,7 +376,10 @@ export class AgentWebSocketClient {
   private sendStatus(status: 'ready' | 'busy' | 'error' | 'disconnected', message?: string) {
     if (!this.socket) return;
 
-    const agentStatusData: any = {
+    const agentStatusData: AgentStatus = {
+      id: `status-${Date.now()}-${Math.random()}`,
+      type: 'agent_status' as const,
+      timestamp: new Date().toISOString(),
       status,
       currentSessions: Array.from(this.activeSessions.keys())
     };
@@ -504,55 +415,21 @@ export class AgentWebSocketClient {
     }
   }
 
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      if (this.socket && this.connectionState === CONNECTION_STATES.CONNECTED) {
-        this.socket.emit(SOCKET_EVENTS.HEARTBEAT);
-      }
-    }, 30000); // Every 30 seconds
-  }
-
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
-  }
-
-  disconnect() {
+  override disconnect() {
     console.log('🔌 Disconnecting agent...');
-    
-    this.stopHeartbeat();
-    
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-    
-    this.connectionState = CONNECTION_STATES.DISCONNECTED;
+    super.disconnect();
     this.activeSessions.clear();
-  }
-
-  getConnectionState(): ConnectionState {
-    return this.connectionState;
-  }
-
-  isConnected(): boolean {
-    return this.connectionState === CONNECTION_STATES.CONNECTED && this.socket?.connected === true;
   }
 
   getActiveSessions(): string[] {
     return Array.from(this.activeSessions.keys());
   }
 
-  getStats() {
+  override getStats() {
     return {
-      connectionState: this.connectionState,
-      isConnected: this.isConnected(),
+      ...super.getStats(),
       activeSessions: this.activeSessions.size,
-      sessionIds: this.getActiveSessions(),
-      reconnectAttempts: this.reconnectAttempts,
-      clientId: this.clientId
+      sessionIds: this.getActiveSessions()
     };
   }
 }

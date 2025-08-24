@@ -13,7 +13,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
   // Intercept response to log completion
   const originalSend = res.json
-  res.json = function(data: any) {
+  res.json = function(data: unknown) {
     const duration = Date.now() - start
     console.log(`✅ ${req.method} ${req.path} ${res.statusCode} - ${duration}ms`)
     return originalSend.call(this, data)

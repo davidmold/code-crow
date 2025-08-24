@@ -215,7 +215,7 @@ export class ProjectScanner {
     }
   }
 
-  private detectFramework(packageJson: any): string | undefined {
+  private detectFramework(packageJson: Record<string, unknown>): string | undefined {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
     
     if (deps.react) return 'React'

@@ -47,7 +47,7 @@ api.interceptors.response.use(
 )
 
 // Type definitions
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   message?: string
@@ -83,6 +83,24 @@ export interface FileInfo {
   children?: FileInfo[]
 }
 
+export interface AddProjectRequest {
+  path: string
+  name?: string
+  type?: string
+  [key: string]: unknown
+}
+
+export interface ProjectUpdateRequest {
+  name?: string
+  description?: string
+  [key: string]: unknown
+}
+
+export interface TestConnectionRequest {
+  message?: string
+  data?: Record<string, unknown>
+}
+
 // API methods
 export class ApiService {
   // Health check
@@ -109,13 +127,13 @@ export class ApiService {
   }
 
   // Test endpoint
-  static async testConnection(message?: string, data?: any): Promise<ApiResponse> {
+  static async testConnection(message?: string, data?: Record<string, unknown>): Promise<ApiResponse> {
     const response = await api.post('/test', { message, data })
     return response.data
   }
 
   // Project management
-  static async addProject(request: any): Promise<ApiResponse> {
+  static async addProject(request: AddProjectRequest): Promise<ApiResponse> {
     const response = await api.post('/projects', request)
     return response.data
   }
@@ -138,7 +156,7 @@ export class ApiService {
     return response.data
   }
 
-  static async updateProject(projectId: string, updates: any): Promise<ApiResponse> {
+  static async updateProject(projectId: string, updates: ProjectUpdateRequest): Promise<ApiResponse> {
     const response = await api.put(`/projects/${projectId}`, updates)
     return response.data
   }

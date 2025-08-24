@@ -130,7 +130,7 @@ export class SessionManager {
         
         // Emit completion event
         this.emitEvent({
-          type: session.status as any,
+          type: session.status as SessionEvent['type'],
           sessionId: session.id,
           projectId: session.projectId,
           timestamp: new Date().toISOString(),

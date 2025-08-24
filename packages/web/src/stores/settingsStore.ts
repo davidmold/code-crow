@@ -118,7 +118,7 @@ export const useSettingsStore = defineStore('settings', () => {
       
       for (const [key, value] of Object.entries(imported)) {
         if (key in defaultSettings) {
-          (validatedSettings as any)[key] = value
+          (validatedSettings as Record<string, unknown>)[key] = value
         }
       }
       

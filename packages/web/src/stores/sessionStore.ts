@@ -3,12 +3,32 @@ import { ref, computed } from 'vue'
 import { webSocketService } from '../services/websocket'
 import type { ClaudeCodeApiOptions, WebClientOptions } from '@code-crow/shared'
 
+interface CommandHistoryItem {
+  command: string
+  timestamp: Date
+  continueSession?: boolean
+  apiOptions?: ClaudeCodeApiOptions
+  clientOptions?: WebClientOptions
+}
+
+interface SessionHistoryData {
+  projectId: string
+  commands: CommandHistoryItem[]
+}
+
+interface CommandResult {
+  claudeSessionId?: string
+  status: string
+  sessionId: string
+  [key: string]: unknown
+}
+
 export const useSessionStore = defineStore('sessions', () => {
   const currentProjectId = ref<string | null>(null)
   const projectSessions = ref(new Map<string, string>()) // projectId -> sessionId
   const continueMode = ref(true)
   const planMode = ref(false) // Plan mode toggle for easier access
-  const sessionHistory = ref(new Map<string, any>())
+  const sessionHistory = ref(new Map<string, SessionHistoryData>())
   const claudeSessionIds = ref(new Map<string, string>()) // projectId -> Claude session ID
   
   
@@ -232,7 +252,7 @@ export const useSessionStore = defineStore('sessions', () => {
   }
 
   // Handle command result and extract Claude session ID
-  const handleCommandResult = (result: any): void => {
+  const handleCommandResult = (result: CommandResult): void => {
     if (result.claudeSessionId && result.status === 'complete') {
       // Find the project ID for this session
       const sessionId = result.sessionId

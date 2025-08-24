@@ -11,7 +11,7 @@ export class MessageFactory {
     } as T;
   }
 
-  static isValidMessage(data: any): data is AnyMessage {
+  static isValidMessage(data: unknown): data is AnyMessage {
     return (
       data &&
       typeof data === 'object' &&
@@ -57,65 +57,8 @@ export class RoomManager {
   }
 }
 
-export class SessionManager {
-  private static sessions = new Map<string, any>();
-
-  static createSession(projectId: string, clientId: string, command: string): string {
-    const sessionId = uuidv4();
-    const session = {
-      id: sessionId,
-      projectId,
-      clientId,
-      command,
-      startTime: new Date().toISOString(),
-      status: 'running'
-    };
-    
-    this.sessions.set(sessionId, session);
-    return sessionId;
-  }
-
-  static getSession(sessionId: string) {
-    return this.sessions.get(sessionId);
-  }
-
-  static updateSession(sessionId: string, updates: Partial<any>) {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      Object.assign(session, updates);
-    }
-  }
-
-  static completeSession(sessionId: string, success: boolean, response?: string, error?: string) {
-    this.updateSession(sessionId, {
-      status: success ? 'complete' : 'error',
-      endTime: new Date().toISOString(),
-      response,
-      error
-    });
-  }
-
-  static removeSession(sessionId: string) {
-    this.sessions.delete(sessionId);
-  }
-
-  static getActiveSessions(): string[] {
-    return Array.from(this.sessions.keys()).filter(id => {
-      const session = this.sessions.get(id);
-      return session && session.status === 'running';
-    });
-  }
-
-  static cleanup(maxAge: number = 3600000) { // 1 hour default
-    const now = Date.now();
-    for (const [sessionId, session] of this.sessions.entries()) {
-      const sessionTime = new Date(session.startTime).getTime();
-      if (now - sessionTime > maxAge) {
-        this.sessions.delete(sessionId);
-      }
-    }
-  }
-}
+// SessionManager has been consolidated to the server package
+// Use the comprehensive SessionManager from @code-crow/server instead
 
 export const SOCKET_EVENTS = {
   // Connection

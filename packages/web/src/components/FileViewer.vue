@@ -5,14 +5,27 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="w-5 h-5 text-blue-500">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
           <div>
             <h3 class="text-sm font-medium text-gray-900 dark:text-white flex items-center space-x-2">
               <span>{{ file.name }}</span>
-              <span v-if="hasUnsavedChanges" class="w-2 h-2 bg-orange-500 rounded-full" title="Unsaved changes"></span>
+              <span
+                v-if="hasUnsavedChanges"
+                class="w-2 h-2 bg-orange-500 rounded-full"
+                title="Unsaved changes"
+              />
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ file.path }}
@@ -20,17 +33,19 @@
           </div>
         </div>
         <!-- Save controls -->
-        <div v-if="isCodeFile && !isLoading" class="flex items-center space-x-2">
+        <div
+          v-if="isCodeFile && !isLoading"
+          class="flex items-center space-x-2"
+        >
           <button
             v-if="hasUnsavedChanges"
-            @click="discardChanges"
             class="px-3 py-1.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             title="Discard changes (Ctrl+Z to undo)"
+            @click="discardChanges"
           >
             Discard
           </button>
           <button
-            @click="saveFile"
             :disabled="!hasUnsavedChanges || isSaving"
             :class="[
               'px-3 py-1.5 text-xs rounded transition-colors',
@@ -39,9 +54,13 @@
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
             ]"
             title="Save file (Ctrl+S)"
+            @click="saveFile"
           >
-            <span v-if="isSaving" class="flex items-center space-x-1">
-              <div class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+            <span
+              v-if="isSaving"
+              class="flex items-center space-x-1"
+            >
+              <div class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
               <span>Saving...</span>
             </span>
             <span v-else>Save</span>
@@ -53,18 +72,30 @@
     <!-- File content -->
     <div class="flex-1 overflow-hidden">
       <!-- Loading state -->
-      <div v-if="isLoading" class="h-full flex items-center justify-center">
+      <div
+        v-if="isLoading"
+        class="h-full flex items-center justify-center"
+      >
         <div class="text-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading file...</p>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Loading file...
+          </p>
         </div>
       </div>
 
       <!-- Directory view -->
-      <div v-else-if="file.type === 'directory'" class="h-full p-4">
+      <div
+        v-else-if="file.type === 'directory'"
+        class="h-full p-4"
+      >
         <div class="text-center py-8">
-          <svg class="mx-auto h-16 w-16 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+          <svg
+            class="mx-auto h-16 w-16 text-blue-500 dark:text-blue-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
           </svg>
           <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">
             Directory: {{ file.name }}
@@ -80,10 +111,13 @@
         v-else-if="isCodeFile" 
         ref="editorContainer" 
         class="h-full w-full"
-      ></div>
+      />
       
       <!-- Simple text display for non-code files -->
-      <div v-else class="h-full overflow-auto">
+      <div
+        v-else
+        class="h-full overflow-auto"
+      >
         <pre class="p-4 text-sm font-mono whitespace-pre-wrap bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-h-full"><code>{{ fileContent }}</code></pre>
       </div>
     </div>

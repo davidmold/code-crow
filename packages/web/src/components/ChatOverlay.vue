@@ -11,11 +11,26 @@
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center space-x-2">
-          <svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          <svg
+            class="h-5 w-5 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Chat</h3>
-          <div v-if="projectStore.currentProject" class="text-sm text-gray-500 dark:text-gray-400">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            Chat
+          </h3>
+          <div
+            v-if="projectStore.currentProject"
+            class="text-sm text-gray-500 dark:text-gray-400"
+          >
             {{ projectStore.currentProject.name }}
           </div>
         </div>
@@ -23,12 +38,22 @@
         <div class="flex items-center space-x-2">
           <!-- Close button -->
           <button
-            @click="$emit('close')"
             class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
             title="Close"
+            @click="$emit('close')"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -55,11 +80,11 @@ import ChatInterface from '@/components/ChatInterface.vue'
 
 const projectStore = useProjectStore()
 
-const props = defineProps<{
+defineProps<{
   isVisible: boolean
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   close: []
 }>()
 
