@@ -1,4 +1,4 @@
-Looking at the Claude Code SDK documentation, you can directly use the `--continue` functionality. The SDK supports this through the `continueFromSession` option.
+Looking at the Claude Code SDK documentation, you can directly use the `--continue` functionality. The SDK supports this through the `continueSession: true` option.
 
 Here's how to implement it properly in your web interface:
 
@@ -39,9 +39,9 @@ export class ClaudeCodeService extends EventEmitter {
       queryOptions.canUseTool = this.createCanUseTool(sessionId);
     }
 
-    // Use continueFromSession if we want to continue and session exists
+    // Use continueSession if we want to continue and session exists
     if (continueSession && await fs.pathExists(sessionFile)) {
-      queryOptions.continueFromSession = sessionFile;
+      queryOptions.continueSession = true;
       console.log(`🔗 Continuing from session: ${sessionFile}`);
     } else {
       // New session - the SDK will create the session file automatically

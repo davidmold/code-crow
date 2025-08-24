@@ -14,7 +14,9 @@ import {
   ErrorMessage,
   ConnectionState,
   PermissionRequest,
-  PermissionResponse
+  PermissionResponse,
+  ClaudeCodeApiOptions,
+  WebClientOptions
 } from '@code-crow/shared'
 
 export interface WebSocketServiceEvents {
@@ -308,9 +310,13 @@ export class WebSocketService {
   executeCommand(
     projectId: string, 
     command: string, 
-    workingDirectory?: string,
+    apiOptions?: ClaudeCodeApiOptions,
+    clientOptions?: WebClientOptions,
     sessionId?: string,
-    continueSession: boolean = true
+    // Backwards compatibility parameters
+    workingDirectory?: string,
+    continueSession: boolean = true,
+    resumeSessionId?: string
   ): string {
     if (!this.socket || !this.isConnected()) {
       throw new Error('Not connected to server')
@@ -321,8 +327,25 @@ export class WebSocketService {
     const executeCommand: ExecuteCommand = MessageFactory.createMessage('execute_command', {
       projectId,
       command,
-      workingDirectory,
       sessionId: actualSessionId,
+      
+      // New generic options approach
+      apiOptions: {
+        // Merge apiOptions with backwards compatibility options
+        ...apiOptions,
+        ...(workingDirectory && !apiOptions?.workingDirectory ? { workingDirectory } : {}),
+        ...(continueSession !== undefined && apiOptions?.continueSession === undefined ? { continueSession } : {}),
+        ...(resumeSessionId && !apiOptions?.resume ? { resume: resumeSessionId } : {})
+      },
+      
+      clientOptions: {
+        // Merge clientOptions with backwards compatibility options
+        ...clientOptions,
+        ...(continueSession !== undefined ? { newSession: !continueSession } : {})
+      },
+      
+      // Backwards compatibility fields (will be removed in future version)
+      workingDirectory,
       continueSession,
       options: {
         newSession: !continueSession
@@ -399,6 +422,11 @@ export class WebSocketService {
   onPermissionTimeout(callback: (data: { requestId: string, reason: string }) => void): () => void {
     this.on('permissionTimeout', callback)
     return () => this.off('permissionTimeout', callback)
+  }
+
+  onCommandResult(callback: (result: any) => void): () => void {
+    this.on('commandResult', callback)
+    return () => this.off('commandResult', callback)
   }
 
   // Event listener management

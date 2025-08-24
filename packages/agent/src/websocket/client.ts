@@ -8,7 +8,8 @@ import {
   CommandResponse,
   AgentStatus,
   ErrorMessage,
-  ConnectionState
+  ConnectionState,
+  ApiOptionsHelper
 } from '@code-crow/shared';
 import { ClaudeCodeService } from '../services/claude-code.service.js';
 
@@ -248,8 +249,27 @@ export class AgentWebSocketClient {
         // Execute command using Claude Code service with streaming and permissions
         console.log(`🔄 Executing Claude Code command in session ${sessionId}...`);
         
-        // Check if this should continue an existing session
-        const continueSession = command.options?.continueSession ?? true;
+        // Merge backwards compatibility options into apiOptions
+        const mergedApiOptions = ApiOptionsHelper.mergeCompatibilityOptions(
+          command.apiOptions,
+          {
+            ...(command.workingDirectory ? { workingDirectory: command.workingDirectory } : {}),
+            ...(command.options ? {
+              ...(command.options.cwd ? { cwd: command.options.cwd } : {}),
+              ...(command.options.allowedTools ? { allowedTools: command.options.allowedTools } : {}),
+              ...(command.options.systemPrompt ? { systemPrompt: command.options.systemPrompt } : {}),
+              ...(command.options.maxTurns ? { maxTurns: command.options.maxTurns } : {}),
+              ...(command.options.timeoutMs ? { timeoutMs: command.options.timeoutMs } : {}),
+              ...(command.options.continueSession !== undefined ? { continueSession: command.options.continueSession } : {})
+            } : {})
+          }
+        );
+
+        console.log(`🔍 Agent Debug - merged apiOptions:`, JSON.stringify(mergedApiOptions, null, 2));
+        
+        // Extract specific options for the service call
+        const continueSession = mergedApiOptions.continueSession ?? true;
+        const claudeSessionId = mergedApiOptions.resume; // Claude's session ID for resuming specific sessions
         
         response = await this.claudeCodeService.executeStreamWithContext(
           command.command,
@@ -262,10 +282,12 @@ export class AgentWebSocketClient {
           command.projectId,
           continueSession,
           {
-            ...(command.workingDirectory || command.options?.cwd ? { workingDirectory: command.workingDirectory || command.options?.cwd } : {}),
+            ...(mergedApiOptions.workingDirectory || mergedApiOptions.cwd ? { workingDirectory: mergedApiOptions.workingDirectory || mergedApiOptions.cwd } : {}),
             streamOutput: true,
-            ...(command.options?.timeoutMs ? { timeout: command.options.timeoutMs } : {})
-          }
+            ...(mergedApiOptions.timeout || mergedApiOptions.timeoutMs ? { timeout: mergedApiOptions.timeout || mergedApiOptions.timeoutMs } : {})
+          },
+          claudeSessionId, // Pass Claude's actual session ID
+          mergedApiOptions // Pass all Claude Code SDK options
         );
       } finally {
         // Remove temporary listeners
@@ -283,12 +305,12 @@ export class AgentWebSocketClient {
       if (response.success) {
         // If we have streaming content, send final completion
         if (streamedContent) {
-          await this.sendCommandResponse(sessionId, '', true);
+          await this.sendCommandResponse(sessionId, '', true, undefined, response.claudeSessionId);
         } else if (response.output) {
           // Send the complete response if no streaming occurred
-          await this.sendCommandResponse(sessionId, response.output, true);
+          await this.sendCommandResponse(sessionId, response.output, true, undefined, response.claudeSessionId);
         } else {
-          await this.sendCommandResponse(sessionId, 'Command completed successfully', true);
+          await this.sendCommandResponse(sessionId, 'Command completed successfully', true, undefined, response.claudeSessionId);
         }
       } else {
         // Handle error case
@@ -383,7 +405,8 @@ export class AgentWebSocketClient {
     sessionId: string, 
     data: string, 
     isComplete: boolean,
-    error?: string
+    error?: string,
+    claudeSessionId?: string
   ) {
     if (!this.socket) return;
 
@@ -395,6 +418,10 @@ export class AgentWebSocketClient {
     
     if (error !== undefined) {
       responseData.error = error;
+    }
+    
+    if (claudeSessionId !== undefined) {
+      responseData.claudeSessionId = claudeSessionId;
     }
     
     const response: CommandResponse = MessageFactory.createMessage('command_response', responseData);

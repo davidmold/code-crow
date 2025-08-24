@@ -9,6 +9,7 @@ export interface ClaudeCodeExecuteResult {
   output: string
   error?: string
   duration: number
+  claudeSessionId?: string | undefined // Claude's actual session ID
 }
 
 // Import shared types instead of redefining them

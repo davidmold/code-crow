@@ -15,7 +15,8 @@ import {
   CommandResponse,
   AgentStatus,
   FileChange,
-  ConnectionStatus
+  ConnectionStatus,
+  ApiOptionsHelper
 } from '@code-crow/shared';
 import { SessionManager } from '../services/sessionManager.js';
 
@@ -270,7 +271,18 @@ export class WebSocketServer {
   private async handleExecuteCommand(socket: Socket, data: ExecuteCommand) {
     try {
       console.log(`⚡ Execute command from ${socket.id}: ${data.command}`);
-      console.log(`🔍 Debug - continueSession: ${data.continueSession}, options: ${JSON.stringify(data.options)}`);
+      
+      // Merge backwards compatibility options into apiOptions
+      const mergedApiOptions = ApiOptionsHelper.mergeCompatibilityOptions(
+        data.apiOptions,
+        {
+          ...(data.workingDirectory ? { workingDirectory: data.workingDirectory } : {}),
+          ...(data.continueSession !== undefined ? { continueSession: data.continueSession } : {})
+          // Note: data.options only contains { newSession?: boolean } so we don't merge those Claude Code options here
+        }
+      );
+
+      console.log(`🔍 Debug - merged apiOptions:`, JSON.stringify(mergedApiOptions, null, 2));
       
       // Use the session ID provided by the client
       const sessionId = data.sessionId;
@@ -295,16 +307,15 @@ export class WebSocketServer {
         throw new Error(sessionResult.error || 'Failed to create session');
       }
       
-      // Create agent command
+      // Create agent command with merged options
       const agentCommand: AgentCommand = MessageFactory.createMessage('agent_command', {
         sessionId,
         command: data.command,
         projectId: data.projectId,
-        ...(data.workingDirectory ? { workingDirectory: data.workingDirectory } : {}),
-        options: {
-          ...(data.workingDirectory ? { cwd: data.workingDirectory } : {}),
-          continueSession: data.continueSession,
-          timeoutMs: 300000
+        apiOptions: {
+          ...mergedApiOptions,
+          // Ensure we have a default timeout if not specified
+          timeoutMs: mergedApiOptions.timeoutMs || 300000
         }
       });
 
@@ -361,7 +372,8 @@ export class WebSocketServer {
       const commandResult: CommandResult = MessageFactory.createMessage('command_result', {
         sessionId: data.sessionId,
         response: data.data,
-        status: data.error ? 'error' : (data.isComplete ? 'complete' : 'streaming')
+        status: data.error ? 'error' : (data.isComplete ? 'complete' : 'streaming'),
+        ...(data.claudeSessionId ? { claudeSessionId: data.claudeSessionId } : {})
       });
 
       // Send to specific client

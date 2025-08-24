@@ -1,3 +1,5 @@
+import { ClaudeCodeApiOptions, WebClientOptions } from './claude-code-api.js';
+
 export interface BaseMessage {
   id: string;
   timestamp: string;
@@ -24,8 +26,17 @@ export interface ExecuteCommand extends BaseMessage {
   type: 'execute_command';
   projectId: string;
   command: string;
-  workingDirectory?: string;
   sessionId: string;
+  
+  // Generic Claude Code API options (passed through to SDK)
+  apiOptions?: ClaudeCodeApiOptions;
+  
+  // Web client specific options (not passed to SDK)
+  clientOptions?: WebClientOptions;
+  
+  // Backwards compatibility - these will be merged into apiOptions
+  // TODO: Remove these in a future version
+  workingDirectory?: string;
   continueSession?: boolean;
   options?: {
     newSession?: boolean;
@@ -48,8 +59,14 @@ export interface AgentCommand extends BaseMessage {
   sessionId: string;
   command: string;
   projectId: string;
+  
+  // Generic Claude Code API options (passed through to SDK)
+  apiOptions?: ClaudeCodeApiOptions;
+  
+  // Backwards compatibility - these will be merged into apiOptions
+  // TODO: Remove these in a future version
   workingDirectory?: string;
-  options: {
+  options?: {
     cwd?: string;
     allowedTools?: string[];
     systemPrompt?: string;
@@ -72,6 +89,7 @@ export interface CommandResponse extends BaseMessage {
   data: string;
   isComplete: boolean;
   error?: string;
+  claudeSessionId?: string; // Claude's actual session ID
 }
 
 export interface AgentStatus extends BaseMessage {
@@ -95,6 +113,7 @@ export interface CommandResult extends BaseMessage {
   sessionId: string;
   response: string;
   status: 'streaming' | 'complete' | 'error';
+  claudeSessionId?: string; // Claude's actual session ID
   metadata?: {
     file?: string;
     operation?: string;

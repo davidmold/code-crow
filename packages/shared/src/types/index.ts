@@ -76,3 +76,6 @@ export * from './messages.js'
 // Export Stage 5 types  
 export * from './commands.js'
 export * from './sessions.js'
+
+// Export Claude Code API types
+export * from './claude-code-api.js'

@@ -19,8 +19,9 @@ export class ClaudeCodeService extends EventEmitter {
     timeout: NodeJS.Timeout
     originalInput: Record<string, unknown>
   }>()
-  private sessionFiles = new Map<string, string>() // sessionId -> sessionFilePath
-  private sessionsDir = '.code-crow/sessions'
+  private lastProjectId: string | null = null // Track the last project we used
+  private sessionsDir = '.claude-sessions' // Directory for session files
+  private sessionFiles = new Map<string, string>() // sessionId -> sessionFile path
 
   constructor(private workingDirectory?: string) {
     super()
@@ -59,7 +60,8 @@ export class ClaudeCodeService extends EventEmitter {
     sessionId: string,
     _projectId: string, // Unused but part of API
     continueSession: boolean = true,
-    options: ClaudeCodeOptions = {}
+    options: ClaudeCodeOptions = {},
+    apiOptions: Record<string, any> = {} // All Claude Code SDK options
   ): Promise<ClaudeCodeExecuteResult> {
     if (!this.initialized) {
       await this.initialize()
@@ -101,15 +103,14 @@ export class ClaudeCodeService extends EventEmitter {
       console.log(`🔍 Session Debug - continueSession: ${continueSession}`)
       console.log(`🔍 Session Debug - file exists: ${fsSync.existsSync(sessionFile)}`)
       
-      // Use continueFromSession if we want to continue and session exists
-      if (continueSession && fsSync.existsSync(sessionFile)) {
-        queryOptions.continueFromSession = sessionFile
-        console.log(`🔗 Continuing from session: ${sessionFile}`)
+      // Simple session continuation logic for executeWithContext
+      if (continueSession) {
+        queryOptions.continueSession = true
+        console.log(`🔗 Continuing session for project ${_projectId}`)
       } else {
-        // New session - the SDK will create the session file automatically
-        queryOptions.sessionFile = sessionFile
-        console.log(`🆕 Starting new session: ${sessionFile}`)
+        console.log(`🆕 Starting new session for project ${_projectId}`)
       }
+
 
       // Store session file path for this sessionId
       this.sessionFiles.set(sessionId, sessionFile)
@@ -117,9 +118,16 @@ export class ClaudeCodeService extends EventEmitter {
       // Use AsyncIterable format when using permissions (required for canUseTool)
       const promptInput = sessionId ? this.createAsyncIterablePromptWithWorkaround(prompt) : prompt
 
+      const finalOptions = {
+        ...queryOptions,
+        ...apiOptions // Merge in all Claude Code SDK options
+      }
+      
+      console.log(`🔍 Claude Code SDK options:`, JSON.stringify(finalOptions, null, 2))
+      
       const queryResult = query({
         prompt: promptInput,
-        options: queryOptions
+        options: finalOptions
       })
 
       const duration = Date.now() - startTime
@@ -205,9 +213,16 @@ export class ClaudeCodeService extends EventEmitter {
       // Use AsyncIterable format when using permissions (required for canUseTool)
       const promptInput = sessionId ? this.createAsyncIterablePromptWithWorkaround(prompt) : prompt
 
+      const finalOptions = {
+        ...queryOptions,
+
+      }
+      
+      console.log(`🔍 Claude Code SDK options:`, JSON.stringify(finalOptions, null, 2))
+      
       const queryResult = query({
         prompt: promptInput,
-        options: queryOptions
+        options: finalOptions
       })
 
       const duration = Date.now() - startTime
@@ -269,9 +284,11 @@ export class ClaudeCodeService extends EventEmitter {
     prompt: string,
     onChunk: (chunk: string) => void,
     sessionId: string,
-    _projectId: string, // Unused but part of API
+    projectId: string,
     continueSession: boolean = true,
-    options: ClaudeCodeOptions = {}
+    options: ClaudeCodeOptions = {},
+    claudeSessionId?: string, // Claude's actual session ID for this project
+    apiOptions: Record<string, any> = {} // All Claude Code SDK options
   ): Promise<ClaudeCodeExecuteResult> {
     if (!this.initialized) {
       await this.initialize()
@@ -296,6 +313,7 @@ export class ClaudeCodeService extends EventEmitter {
     }
     
     let fullOutput = ''
+    let extractedClaudeSessionId: string | undefined = undefined
 
     try {
       console.log(`🤖 Streaming Claude Code command: "${prompt}"${continueSession ? ` (session: ${sessionId})` : ' (new session)'}`)
@@ -315,14 +333,21 @@ export class ClaudeCodeService extends EventEmitter {
       console.log(`🔍 Session Debug - continueSession: ${continueSession}`)
       console.log(`🔍 Session Debug - file exists: ${fsSync.existsSync(sessionFile)}`)
       
-      // Use continueFromSession if we want to continue and session exists
-      if (continueSession && fsSync.existsSync(sessionFile)) {
-        queryOptions.continueFromSession = sessionFile
-        console.log(`🔗 Continuing from session: ${sessionFile}`)
+      // Smart session continuation logic
+      const isSameProject = this.lastProjectId === projectId
+      this.lastProjectId = projectId
+      
+      if (claudeSessionId) {
+        // Resume specific Claude session for this project
+        queryOptions.resume = claudeSessionId
+        console.log(`🔗 Resuming Claude session for project ${projectId}: ${claudeSessionId}`)
+      } else if (continueSession && isSameProject) {
+        // Continue from most recent session (same project)
+        queryOptions.continueSession = true
+        console.log(`🔗 Continuing session (same project ${projectId})`)
       } else {
-        // New session - the SDK will create the session file automatically
-        queryOptions.sessionFile = sessionFile
-        console.log(`🆕 Starting new session: ${sessionFile}`)
+        // New session (different project or explicitly new)
+        console.log(`🆕 Starting new session for project ${projectId} (was: ${this.lastProjectId})`)
       }
 
       // Store session file path for this sessionId
@@ -331,15 +356,27 @@ export class ClaudeCodeService extends EventEmitter {
       // Use AsyncIterable format when using permissions (required for canUseTool)
       const promptInput = sessionId ? this.createAsyncIterablePromptWithWorkaround(prompt) : prompt
 
+      const finalOptions = {
+        ...queryOptions,
+        ...apiOptions // Merge in all Claude Code SDK options
+      }
+      
+      console.log(`🔍 Claude Code SDK options:`, JSON.stringify(finalOptions, null, 2))
+      
       const queryResult = query({
         prompt: promptInput,
-        options: queryOptions
+        options: finalOptions
       })
 
       try {
         for await (const message of queryResult) {
           // Log all message types for debugging
           console.log('🔍 Claude Code streaming message type:', message.type, JSON.stringify(message, null, 2))
+          
+          // Extract Claude's session ID from any message that contains it
+          if (message.session_id && typeof message.session_id === 'string') {
+            extractedClaudeSessionId = message.session_id
+          }
           
           // Handle different message types with status updates
           if (message.type === 'system' && message.subtype === 'init') {
@@ -389,7 +426,8 @@ export class ClaudeCodeService extends EventEmitter {
       return {
         success: true,
         output: fullOutput,
-        duration
+        duration,
+        claudeSessionId: extractedClaudeSessionId
       }
 
     } catch (error) {
@@ -437,9 +475,16 @@ export class ClaudeCodeService extends EventEmitter {
       // Use AsyncIterable format when using permissions (required for canUseTool)
       const promptInput = sessionId ? this.createAsyncIterablePromptWithWorkaround(prompt) : prompt
 
+      const finalOptions = {
+        ...queryOptions,
+        
+      }
+      
+      console.log(`🔍 Claude Code SDK options:`, JSON.stringify(finalOptions, null, 2))
+      
       const queryResult = query({
         prompt: promptInput,
-        options: queryOptions
+        options: finalOptions
       })
 
       try {
