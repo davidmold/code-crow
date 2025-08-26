@@ -139,6 +139,9 @@ export class AgentWebSocketClient extends BaseWebSocketClient {
       const onPermissionRequest = (request: PermissionRequest) => {
         if (request.sessionId === sessionId) {
           console.log(`🔐 Forwarding permission request: ${request.id}`);
+          // Send a user-visible status update about the tool being used
+          const toolName = this.formatToolName(request.toolName);
+          this.sendCommandResponse(sessionId, `__STATUS__:using_tool:${toolName}`, false);
           this.socket?.emit('permission:request', request);
         }
       };
@@ -155,6 +158,8 @@ export class AgentWebSocketClient extends BaseWebSocketClient {
       let response;
       let streamedContent = ''; // Move variable declaration outside try block
       try {
+        // Send early status to UI and execute command using Claude Code service with streaming and permissions
+        await this.sendCommandResponse(sessionId, '__STATUS__:thinking', false);
         // Execute command using Claude Code service with streaming and permissions
         console.log(`🔄 Executing Claude Code command in session ${sessionId}...`);
         
@@ -212,6 +217,8 @@ export class AgentWebSocketClient extends BaseWebSocketClient {
 
       // Send final completion message
       if (response.success) {
+        // Indicate we are wrapping up
+        await this.sendCommandResponse(sessionId, '__STATUS__:completing', false);
         // If we have streaming content, send final completion
         if (streamedContent) {
           await this.sendCommandResponse(sessionId, '', true, undefined, response.claudeSessionId);
@@ -286,6 +293,11 @@ export class AgentWebSocketClient extends BaseWebSocketClient {
         clearTimeout(timeoutHandle);
       }
     }
+  }
+
+  private formatToolName(name: string): string {
+    if (!name) return 'Tool';
+    return name.charAt(0).toUpperCase() + name.slice(1);
   }
 
   private async handleCommandTimeout(sessionId: string) {

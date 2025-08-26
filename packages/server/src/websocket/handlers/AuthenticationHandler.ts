@@ -85,6 +85,9 @@ export class AuthenticationHandler {
       this.setupAgentHandlers(socket);
     } else {
       socket.join(RoomManager.getWebRoom());
+      // Also join a per-client room so we can target responses to this specific web client
+      // This matches the CommandHandler which broadcasts to `client_${session.clientId}`
+      socket.join(`client_${socket.id}`);
       this.setupWebHandlers(socket);
     }
   }

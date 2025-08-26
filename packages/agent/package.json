@@ -10,6 +10,8 @@
     "cli": "tsx src/cli.ts",
     "cli:execute": "tsx src/cli.ts execute",
     "cli:scan": "tsx src/cli.ts scan",
+    "health": "tsx src/cli.ts health",
+    "smoke": "tsx src/cli.ts smoke",
     "clean": "rm -rf dist node_modules",
     "lint": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit"

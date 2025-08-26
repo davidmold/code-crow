@@ -348,8 +348,8 @@ const isProcessing = computed(() => chatStore.isProcessing)
 const currentStatusMessage = ref<string>('')
 const showStatus = ref(false)
 const statusMessages = {
-  initializing: ['Initalizing...', 'Getting started...', 'Setting up...', 'On my marks...'],
-  thinking: ['Thinking...', 'Cogitating...', 'Fiddle-faddling...', 'Pondering...', 'Considering...'],
+  initializing: ['Initalizing...'],
+  thinking: ['Thinking...'],
   using_tool: {
     Read: ['Reading...'],
     Write: ['Writing...'],

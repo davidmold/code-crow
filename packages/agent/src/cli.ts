@@ -67,6 +67,97 @@ program
   })
 
 program
+  .command('health')
+  .description('Run agent health checks (CLI install/auth and minimal query)')
+  .option('-w, --cwd <directory>', 'Working directory to test')
+  .action(async (options) => {
+    try {
+      const config = ConfigService.load()
+      const workingDirectory = options.cwd || config.claudeCode.workingDirectory || process.cwd()
+
+      console.log('🩺 Agent Health Check')
+      console.log(`📁 Working directory: ${workingDirectory}`)
+
+      // Verify SDK import
+      try {
+        await import('@anthropic-ai/claude-code')
+        console.log('✅ SDK import: ok')
+      } catch (e) {
+        console.error('❌ SDK import failed:', e)
+        process.exit(1)
+      }
+
+      // Minimal non-streaming query
+      const service = new ClaudeCodeService(workingDirectory)
+      const result = await service.execute('ping', { workingDirectory })
+      if (!result.success) {
+        console.error('❌ Minimal query failed:', result.error)
+        process.exit(1)
+      }
+      console.log('✅ Minimal query: ok')
+
+      // Stream-json round-trip (permissions path) using a temporary session
+      const sessionId = `health_${Date.now()}`
+      const streamResult = await service.executeStreamWithContext(
+        'hello from health',
+        () => {},
+        sessionId,
+        'health',
+        true,
+        { workingDirectory },
+        undefined,
+        { cwd: workingDirectory }
+      )
+      if (!streamResult.success) {
+        console.error('❌ Stream-json round-trip failed:', streamResult.error)
+        process.exit(1)
+      }
+      console.log('✅ Stream-json round-trip: ok')
+      console.log('🟢 Health check passed')
+      process.exit(0)
+    } catch (error) {
+      console.error('❌ Health check error:', error)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('smoke')
+  .description('Run an integration smoke test (stream-json)')
+  .option('-w, --cwd <directory>', 'Working directory to test')
+  .action(async (options) => {
+    try {
+      const config = ConfigService.load()
+      const workingDirectory = options.cwd || config.claudeCode.workingDirectory || process.cwd()
+
+      console.log('🚬 Running integration smoke test...')
+      const service = new ClaudeCodeService(workingDirectory)
+      const sessionId = `smoke_${Date.now()}`
+      let output = ''
+      const res = await service.executeStreamWithContext(
+        'say hello',
+        (chunk) => { output += chunk },
+        sessionId,
+        'smoke',
+        true,
+        { workingDirectory },
+        undefined,
+        { cwd: workingDirectory }
+      )
+      if (!res.success) {
+        console.error('❌ Smoke test failed:', res.error)
+        process.exit(1)
+      }
+      console.log('✅ Smoke test ok. Output sample:')
+      console.log(output.slice(0, 200) + (output.length > 200 ? '...' : ''))
+      process.exit(0)
+    } catch (error) {
+      console.error('❌ Smoke test error:', error)
+      process.exit(1)
+    }
+  })
+
+program
   .command('scan')
   .description('Scan for projects in the configured directories')
   .argument('[path]', 'Specific path to scan (optional)')

@@ -1,6 +1,7 @@
 import { query } from '@anthropic-ai/claude-code'
 import type { CanUseTool } from '@anthropic-ai/claude-code'
 import { ClaudeCodeOptions, ClaudeCodeExecuteResult } from '../types/index.js'
+import { ApiOptionsHelper } from '@code-crow/shared'
 import * as fs from 'fs/promises'
 
 interface ClaudeMessageContent {
@@ -55,11 +56,8 @@ export class ClaudeCodeExecutor {
     try {
       console.log(`🤖 Executing Claude Code command: "${typeof prompt === 'string' ? prompt : '[AsyncIterable]'}"${sessionId ? ` (session: ${sessionId})` : ' (no session)'}`)
       
-      // Build query options
-      const queryOptions: Record<string, unknown> = {
-        cwd: workingDir,
-        ...apiOptions
-      }
+      // Build query options: normalize and only pass supported keys to the SDK/CLI
+      const queryOptions: Record<string, unknown> = this.buildQueryOptions(workingDir, apiOptions)
 
       // Add permission callback if provided
       if (canUseTool) {
@@ -68,13 +66,28 @@ export class ClaudeCodeExecutor {
 
       console.log(`🔍 Claude Code SDK options:`, JSON.stringify(queryOptions, null, 2))
       
+      // Enable rich stderr from Claude CLI to aid debugging (configurable via CODE_CROW_DEBUG)
+      const stderrBuffer: string[] = []
+      const enableDebug = process.env.CODE_CROW_DEBUG === 'true'
       const queryResult = query({
         prompt: prompt as any,
-        options: queryOptions
+        options: {
+          ...queryOptions,
+          // Always capture stderr output into buffer; only log when debug enabled
+          stderr: (data: string) => {
+            stderrBuffer.push(data)
+            if (enableDebug) {
+              console.error(`🧵 Claude stderr: ${data.trim()}`)
+            }
+          },
+          // Only enable SDK/CLI debug when explicitly requested
+          ...(enableDebug ? { env: { ...process.env, DEBUG: '1' } } : {})
+        } as any
       })
 
       // Process the query result
       let fullResponse = ''
+      let iterationError: unknown | null = null
       
       try {
         for await (const message of queryResult) {
@@ -98,8 +111,8 @@ export class ClaudeCodeExecutor {
           }
         }
       } catch (iterError) {
-        console.error('Error iterating query result:', iterError)
-        fullResponse = 'Query completed but could not extract response'
+        iterationError = iterError
+        console.error('❌ Error iterating Claude Code query result:', iterError)
       }
 
       const queryResultData = {
@@ -113,6 +126,21 @@ export class ClaudeCodeExecutor {
       const duration = Date.now() - startTime
       console.log(`✅ Command completed in ${duration}ms`)
 
+      // If the SDK iteration failed, surface a clear error up the stack
+      if (iterationError) {
+        const message = iterationError instanceof Error ? iterationError.message : String(iterationError)
+        const stderrMsg = stderrBuffer.join('\n').trim()
+        const detailedMessage = `Claude Code execution failed: ${message}${stderrMsg ? `\nDetails:\n${stderrMsg}` : ''}. Ensure the Claude Code CLI is installed and authenticated (try: \`claude whoami\`), and that the working directory is valid.`
+        return {
+          success: false,
+          output: '',
+          error: detailedMessage,
+          duration,
+          claudeSessionId: queryResultData.session?.id
+        }
+      }
+
+      // Normal success path
       return {
         success: true,
         output: queryResultData.content || '',
@@ -178,21 +206,29 @@ export class ClaudeCodeExecutor {
     }
   }
 
-  createAsyncIterablePromptWithWorkaround(prompt: string): AsyncIterable<string> {
-    let promptDone = false
-    
+  createAsyncIterablePromptWithWorkaround(prompt: string): AsyncIterable<Record<string, unknown>> {
+    // When using canUseTool, the SDK sets --input-format stream-json.
+    // The CLI expects JSONL objects with type 'user' or 'control_request'.
+    // We emit a single 'user' message with the prompt as content.
+    let emitted = false
     return {
-      [Symbol.asyncIterator]: () => {
-        return {
-          async next(): Promise<IteratorResult<string>> {
-            if (promptDone) {
-              return { done: true, value: undefined }
+      [Symbol.asyncIterator]: () => ({
+        async next(): Promise<IteratorResult<Record<string, unknown>>> {
+          if (emitted) return { done: true, value: undefined as any }
+          emitted = true
+          return {
+            done: false,
+            value: {
+              type: 'user',
+              message: {
+                role: 'user',
+                // The CLI reads N.message.content; it accepts string or blocks.
+                content: prompt
+              }
             }
-            promptDone = true
-            return { done: false, value: prompt }
           }
         }
-      }
+      })
     }
   }
 
@@ -201,5 +237,29 @@ export class ClaudeCodeExecutor {
       this.currentPromptDone()
       this.currentPromptDone = undefined
     }
+  }
+
+  private buildQueryOptions(workingDir: string, apiOptions: Record<string, unknown> = {}): Record<string, unknown> {
+    // Extract known API options and normalize to CLI-supported keys
+    const extracted = ApiOptionsHelper.extractApiOptions(apiOptions as any)
+
+    const timeout = (extracted as any).timeout ?? (extracted as any).timeoutMs
+    const cwd = (extracted as any).cwd || (extracted as any).workingDirectory || workingDir
+
+    const normalized: Record<string, unknown> = {
+      cwd,
+      // SDK expects `continue`, we also keep `continueSession` for clarity
+      ...(extracted.continueSession !== undefined ? { continue: extracted.continueSession, continueSession: extracted.continueSession } : {}),
+      ...(extracted.resume ? { resume: extracted.resume } : {}),
+      ...(timeout !== undefined ? { timeout } : {}),
+      ...(extracted.maxTurns !== undefined ? { maxTurns: extracted.maxTurns } : {}),
+      ...(extracted.systemPrompt ? { systemPrompt: extracted.systemPrompt } : {}),
+      ...(extracted.allowedTools ? { allowedTools: extracted.allowedTools } : {}),
+      ...(extracted.permissionMode ? { permissionMode: extracted.permissionMode } : {}),
+      ...(extracted.model ? { model: extracted.model } : {}),
+      ...(extracted.temperature !== undefined ? { temperature: extracted.temperature } : {})
+    }
+
+    return normalized
   }
 }

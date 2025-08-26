@@ -1,9 +1,6 @@
 <template>
   <div class="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-    <div class="flex items-center justify-between">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-        Claude Code Chat
-      </h3>
+    <div class="flex items-center justify-end">
       <div class="flex items-center space-x-2">
         <!-- Session controls -->
         <div class="flex items-center space-x-2 text-sm">
@@ -41,6 +38,16 @@
                 d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
+          </button>
+
+          <!-- Start New Session (forces fresh context for current project) -->
+          <button
+            v-if="projectStore.hasCurrentProject"
+            class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title="Start a new Claude session for this project"
+            @click="startNewSession()"
+          >
+            🆕 New Session
           </button>
         </div>
         
@@ -88,16 +95,35 @@
       v-if="projectStore.hasCurrentProject"
       class="mt-2"
     >
-      <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
-        <p>
-          Working with: <span class="font-medium">{{ projectStore.currentProject?.name || 'Unknown' }}</span>
-        </p>
-        <p
-          v-if="sessionStore.hasActiveSession && sessionStore.sessionDisplayName"
-          class="text-xs"
-        >
-          Session: <span class="font-medium">{{ sessionStore.sessionDisplayName || 'Unknown' }}</span>
-        </p>
+      <div class="flex items-center justify-end text-sm text-gray-600 dark:text-gray-300">
+        <div class="flex items-center space-x-3">
+          <p
+            v-if="sessionStore.hasActiveSession && sessionStore.sessionDisplayName"
+            class="text-xs"
+          >
+            Session: <span class="font-medium">{{ sessionStore.sessionDisplayName || 'Unknown' }}</span>
+          </p>
+          <div
+            v-if="claudeSessionId"
+            class="flex items-center space-x-1 text-xs truncate max-w-[26rem]"
+            :title="copyTooltip"
+          >
+            <span>Claude:</span>
+            <span class="font-mono truncate">{{ truncatedClaudeId }}</span>
+            <button
+              class="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
+              @click="copyClaudeSessionId"
+              aria-label="Copy Claude session ID"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7a2 2 0 012-2h7a2 2 0 012 2v9a2 2 0 01-2 2h-7a2 2 0 01-2-2V7z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M6 9H5a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2v-1" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -107,6 +133,7 @@
 import { useProjectStore } from '@/stores/projectStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useSessionStore } from '@/stores/sessionStore'
+import { computed, ref } from 'vue'
 
 // Define events
 defineEmits<{
@@ -122,5 +149,39 @@ const sessionStore = useSessionStore()
 // Methods
 function toggleContinueMode() {
   sessionStore.setContinueMode(!sessionStore.continueMode)
+}
+
+function startNewSession() {
+  if (projectStore.currentProject?.id) {
+    sessionStore.startNewSession(projectStore.currentProject.id)
+  }
+}
+
+// Claude session ID display for current project
+const claudeSessionId = computed(() => {
+  const pid = projectStore.currentProject?.id
+  return pid ? sessionStore.getClaudeSessionId(pid) : undefined
+})
+
+const truncatedClaudeId = computed(() => {
+  const id = claudeSessionId.value
+  if (!id) return ''
+  return id.length > 20 ? `${id.slice(0, 10)}…${id.slice(-8)}` : id
+})
+
+// Copy to clipboard handling
+const copied = ref(false)
+const copyTooltip = computed(() => (copied.value ? 'Copied!' : 'Copy Claude session ID'))
+async function copyClaudeSessionId() {
+  const id = claudeSessionId.value
+  if (!id) return
+  try {
+    await navigator.clipboard.writeText(id)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1200)
+  } catch (e) {
+    // Fallback: no-op; user can still select text
+    console.error('Failed to copy Claude session ID:', e)
+  }
 }
 </script>
