@@ -168,25 +168,39 @@ export class SessionManager {
     return true
   }
 
-  completeSession(sessionId: string, success: boolean, error?: string): boolean {
+  async completeSession(sessionId: string, success: boolean, _error?: string): Promise<boolean> {
+    const session = this.getSession(sessionId);
+    const updates: Partial<Pick<Session, 'status' | 'endTime' | 'metadata'>> = {
+      status: success ? 'complete' : 'error',
+      endTime: new Date().toISOString()
+    };
+    
+    if (session?.metadata !== undefined) {
+      updates.metadata = session.metadata;
+    }
+    
     return this.updateSession({
       sessionId,
-      updates: {
-        status: success ? 'complete' : 'error',
-        endTime: new Date().toISOString(),
-        metadata: error ? { ...this.getSession(sessionId)?.metadata, error } : undefined
-      }
+      updates
     })
   }
 
-  cancelSession(sessionId: string, reason?: string): boolean {
+  async cancelSession(sessionId: string, reason?: string): Promise<boolean> {
+    const session = this.getSession(sessionId);
+    const updates: Partial<Pick<Session, 'status' | 'endTime' | 'metadata'>> = {
+      status: 'cancelled',
+      endTime: new Date().toISOString()
+    };
+    
+    if (reason) {
+      updates.metadata = { ...session?.metadata, cancelReason: reason } as any;
+    } else if (session?.metadata !== undefined) {
+      updates.metadata = session.metadata;
+    }
+    
     return this.updateSession({
       sessionId,
-      updates: {
-        status: 'cancelled',
-        endTime: new Date().toISOString(),
-        metadata: reason ? { ...this.getSession(sessionId)?.metadata, cancelReason: reason } : undefined
-      }
+      updates
     })
   }
 
@@ -196,13 +210,12 @@ export class SessionManager {
       return false
     }
 
-    this.sessions.delete(sessionId)
-    
-    // Move to history if not already there
+    // Move to history before deleting if not already there
     if (!this.sessionHistory.find(s => s.id === sessionId)) {
       this.moveToHistory(session)
     }
 
+    this.sessions.delete(sessionId)
     console.log(`📋 Removed session: ${sessionId}`)
     return true
   }
@@ -213,12 +226,11 @@ export class SessionManager {
       projectId: session.projectId,
       status: session.status,
       startTime: session.startTime,
-      endTime: session.endTime,
-      duration: session.duration,
+      ...(session.endTime ? { endTime: session.endTime } : {}),
+      ...(session.duration ? { duration: session.duration } : {}),
       commandCount: session.commands.length,
       responseCount: session.responses.length,
-      lastCommand: session.commands[session.commands.length - 1]?.command,
-      error: session.metadata?.error
+      ...(session.commands.length > 0 && session.commands[session.commands.length - 1] ? { lastCommand: session.commands[session.commands.length - 1].command } : {})
     }
 
     this.sessionHistory.unshift(summary)
@@ -295,8 +307,8 @@ export class SessionManager {
     const metrics: SessionMetrics = {
       sessionId: session.id,
       startTime: session.startTime,
-      endTime: session.endTime,
-      duration: session.duration,
+      ...(session.endTime ? { endTime: session.endTime } : {}),
+      ...(session.duration ? { duration: session.duration } : {}),
       commandCount: 'commands' in session ? session.commands.length : session.commandCount || 0,
       responseCount: 'responses' in session ? session.responses.length : session.responseCount || 0,
       bytesTransferred: 0, // TODO: Calculate from responses

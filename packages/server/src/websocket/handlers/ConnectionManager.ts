@@ -26,7 +26,7 @@ export class ConnectionManager {
     private sessionManager: SessionManager,
     private forwardToClientType: (clientType: 'web' | 'agent', event: string, data: unknown) => void,
     private broadcastToRoom: (roomName: string, event: string, data: unknown) => void,
-    private _io: Server, // Socket.io server instance (reserved for future use)
+    _io: Server, // Socket.io server instance (reserved for future use)
     private staleConnectionTimeout: number,
     private heartbeatInterval_ms: number
   ) {}

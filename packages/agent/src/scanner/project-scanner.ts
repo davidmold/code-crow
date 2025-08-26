@@ -216,7 +216,10 @@ export class ProjectScanner {
   }
 
   private detectFramework(packageJson: Record<string, unknown>): string | undefined {
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
+    const deps = { 
+      ...(packageJson.dependencies as Record<string, unknown> | undefined), 
+      ...(packageJson.devDependencies as Record<string, unknown> | undefined) 
+    }
     
     if (deps.react) return 'React'
     if (deps.vue) return 'Vue'

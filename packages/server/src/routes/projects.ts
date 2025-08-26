@@ -95,13 +95,13 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // GET /api/projects/:id/files - Get project file structure
-router.get('/:id/files', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:id/files', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   
   // First check if project exists
-  const project = await ProjectService.getProject(id)
+  const project = await ProjectService.getProject(id!)
   if (!project) {
-    return res.status(404).json({
+    res.status(404).json({
       success: false,
       error: {
         status: 404,
@@ -109,9 +109,10 @@ router.get('/:id/files', asyncHandler(async (req: Request, res: Response) => {
         code: 'PROJECT_NOT_FOUND'
       }
     })
+    return
   }
 
-  const files = await ProjectService.getProjectFiles(id)
+  const files = await ProjectService.getProjectFiles(id!)
   
   res.json({
     success: true,
@@ -127,12 +128,12 @@ router.get('/:id/files', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // POST /api/projects - Add a new project
-router.post('/', asyncHandler(async (req: Request, res: Response) => {
+router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const request: AddProjectRequest = req.body
   
   // Validate request
   if (!request.directoryPath) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: {
         status: 400,
@@ -140,6 +141,7 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
         code: 'MISSING_DIRECTORY_PATH'
       }
     })
+    return
   }
 
   const result = await ProjectService.addProject(request)
@@ -167,12 +169,12 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // DELETE /api/projects/:id - Remove a project
-router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
+router.delete('/:id', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   const { deleteFiles = false } = req.body
   
   const request: RemoveProjectRequest = {
-    projectId: id,
+    projectId: id!,
     deleteFiles
   }
   
@@ -182,7 +184,7 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
-        projectId: id,
+        projectId: id!,
         timestamp: new Date().toISOString()
       },
       message: 'Project removed successfully'
@@ -200,19 +202,19 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // PUT /api/projects/:id - Update a project
-router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
+router.put('/:id', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   const updates = req.body
   
   const request: UpdateProjectRequest = {
-    projectId: id,
+    projectId: id!,
     updates
   }
   
   const success = await ProjectService.updateProject(request)
   
   if (success) {
-    const updatedProject = await ProjectService.getProject(id)
+    const updatedProject = await ProjectService.getProject(id!)
     res.json({
       success: true,
       data: {
@@ -234,12 +236,12 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // GET /api/projects/:id/content - Get file content
-router.get('/:id/content', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:id/content', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   const { file } = req.query
   
   if (!file || typeof file !== 'string') {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: {
         status: 400,
@@ -247,9 +249,10 @@ router.get('/:id/content', asyncHandler(async (req: Request, res: Response) => {
         code: 'MISSING_FILE_PATH'
       }
     })
+    return
   }
 
-  const content = await ProjectService.getFileContent(id, file)
+  const content = await ProjectService.getFileContent(id!, file)
   
   if (content !== null) {
     res.json({
@@ -275,12 +278,12 @@ router.get('/:id/content', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // PUT /api/projects/:id/content - Save file content
-router.put('/:id/content', asyncHandler(async (req: Request, res: Response) => {
+router.put('/:id/content', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   const { file, content } = req.body
   
   if (!file || typeof file !== 'string') {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: {
         status: 400,
@@ -288,10 +291,11 @@ router.put('/:id/content', asyncHandler(async (req: Request, res: Response) => {
         code: 'MISSING_FILE_PATH'
       }
     })
+    return
   }
 
   if (content === undefined || content === null) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: {
         status: 400,
@@ -299,15 +303,16 @@ router.put('/:id/content', asyncHandler(async (req: Request, res: Response) => {
         code: 'MISSING_FILE_CONTENT'
       }
     })
+    return
   }
 
-  const success = await ProjectService.saveFileContent(id, file, content)
+  const success = await ProjectService.saveFileContent(id!, file, content)
   
   if (success) {
     res.json({
       success: true,
       data: {
-        projectId: id,
+        projectId: id!,
         filePath: file,
         timestamp: new Date().toISOString()
       },
@@ -326,16 +331,16 @@ router.put('/:id/content', asyncHandler(async (req: Request, res: Response) => {
 }))
 
 // GET /api/projects/:id/stats - Get project statistics
-router.get('/:id/stats', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:id/stats', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   
-  const stats = await ProjectService.getProjectStats(id)
+  const stats = await ProjectService.getProjectStats(id!)
   
   if (stats) {
     res.json({
       success: true,
       data: {
-        projectId: id,
+        projectId: id!,
         stats,
         timestamp: new Date().toISOString()
       },

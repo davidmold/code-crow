@@ -298,7 +298,7 @@ export class ProjectService {
   }
 
   // Get project statistics
-  static async getProjectStats(projectId: string): Promise<{ fileCount: number; totalSize: number; error?: string }> {
+  static async getProjectStats(projectId: string): Promise<{ fileCount: number; totalSize: number; error?: string } | null> {
     try {
       const project = await this.getProject(projectId)
       if (!project) {
@@ -310,12 +310,15 @@ export class ProjectService {
       
       return {
         fileCount,
-        lastScanned: new Date().toISOString(),
-        projectSize: project.size || 0
+        totalSize: project.size || 0
       }
     } catch (error) {
       console.error(`❌ Failed to get project stats for ${projectId}:`, error)
-      return null
+      return {
+        fileCount: 0,
+        totalSize: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
   }
 

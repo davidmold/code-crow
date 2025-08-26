@@ -23,6 +23,12 @@ export class CommandHandler {
   async handleExecuteCommand(socket: Socket, data: ExecuteCommand): Promise<void> {
     try {
       console.log(`⚡ Execute command from ${socket.id}: ${data.command}`);
+      console.log(`🔍 SESSION TRACKING - Execute Command:`, {
+        sessionId: data.sessionId,
+        continueSession: data.continueSession,
+        apiOptions: data.apiOptions,
+        hasResumeId: !!data.apiOptions?.resume
+      });
       
       const mergedApiOptions = this.mergeApiOptions(data);
       await this.createSessionForCommand(data, socket.id);
@@ -38,6 +44,13 @@ export class CommandHandler {
   async handleCommandResponse(_socket: Socket, data: CommandResponse): Promise<void> {
     try {
       console.log(`📥 Command response from agent: ${data.sessionId}`);
+      console.log(`🔍 SESSION TRACKING - Command Response:`, {
+        sessionId: data.sessionId,
+        claudeSessionId: data.claudeSessionId,
+        hasClaudeSessionId: !!data.claudeSessionId,
+        isComplete: data.isComplete,
+        dataLength: data.data?.length || 0
+      });
       
       const session = this.getSessionForResponse(data.sessionId);
       if (!session) return;
@@ -61,7 +74,7 @@ export class CommandHandler {
       }
     );
 
-    console.log(`🔍 Debug - merged apiOptions:`, JSON.stringify(mergedApiOptions, null, 2));
+    console.log(`🔍 SESSION TRACKING - Merged API Options:`, JSON.stringify(mergedApiOptions, null, 2));
     return mergedApiOptions;
   }
 
@@ -158,6 +171,14 @@ export class CommandHandler {
       response: data.data,
       status: data.error ? 'error' : (data.isComplete ? 'complete' : 'streaming'),
       ...(data.claudeSessionId ? { claudeSessionId: data.claudeSessionId } : {})
+    });
+
+    console.log(`🔍 SESSION TRACKING - Forwarding to Web Client:`, {
+      sessionId: data.sessionId,
+      claudeSessionId: data.claudeSessionId,
+      status: commandResult.status,
+      clientId: session.clientId,
+      hasClaudeSessionId: !!data.claudeSessionId
     });
 
     // Send to specific client

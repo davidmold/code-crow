@@ -36,7 +36,7 @@ export class ProjectConfigService {
       this.config = JSON.parse(data)
       
       // Validate and migrate config if needed
-      this.config = this.validateAndMigrateConfig(this.config!)
+      this.config = this.validateAndMigrateConfig(this.config! as unknown as Record<string, unknown>)
       
     } catch (error) {
       console.log('🆕 Creating new projects config file')
@@ -81,7 +81,7 @@ export class ProjectConfigService {
       return true
     })
 
-    return config as ProjectsConfig
+    return config as unknown as ProjectsConfig
   }
 
   async saveConfig(): Promise<void> {
@@ -152,7 +152,7 @@ export class ProjectConfigService {
         name: request.customName || detection.name,
         path: request.directoryPath,
         type: detection.type,
-        lastModified: new Date().toISOString(),
+        addedDate: new Date().toISOString(),
         ...(request.description ? { description: request.description } : {}),
         ...(detection.framework ? { framework: detection.framework } : {}),
         ...(detection.packageManager ? { packageManager: detection.packageManager } : {}),
@@ -281,11 +281,14 @@ export class ProjectConfigService {
   }
 
   private async analyzeNodeProject(packageJson: Record<string, unknown>, directoryPath: string): Promise<ProjectDetectionResult> {
-    const name = packageJson.name || path.basename(directoryPath)
+    const name = (typeof packageJson.name === 'string' ? packageJson.name : '') || path.basename(directoryPath)
     const hasGit = await this.hasGitDirectory(directoryPath)
     
     // Detect framework
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
+    const deps = { 
+      ...(packageJson.dependencies as Record<string, unknown> | undefined), 
+      ...(packageJson.devDependencies as Record<string, unknown> | undefined) 
+    }
     
     if (deps.react || deps['@types/react']) {
       return {

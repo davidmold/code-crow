@@ -69,7 +69,7 @@ export class ClaudeCodeExecutor {
       console.log(`🔍 Claude Code SDK options:`, JSON.stringify(queryOptions, null, 2))
       
       const queryResult = query({
-        prompt,
+        prompt: prompt as any,
         options: queryOptions
       })
 
@@ -127,14 +127,14 @@ export class ClaudeCodeExecutor {
   private extractTextFromMessage(message: ClaudeMessage): string {
     let text = ''
     
-    if (Array.isArray(message.content)) {
-      for (const contentItem of message.content) {
+    if (Array.isArray((message as any).content)) {
+      for (const contentItem of (message as any).content) {
         if (contentItem.type === 'text' && contentItem.text) {
           text += contentItem.text
         }
       }
-    } else if (typeof message.content === 'string') {
-      text = message.content
+    } else if (typeof (message as any).content === 'string') {
+      text = (message as any).content
     }
     
     return text

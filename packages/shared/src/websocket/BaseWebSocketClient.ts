@@ -330,8 +330,8 @@ export abstract class BaseWebSocketClient {
 
   private setupBrowserEventHandlers() {
     // This method should only be called if isBrowserEnvironment() returns true
-    const win = (globalThis as typeof globalThis & { window?: Window }).window;
-    const doc = (globalThis as typeof globalThis & { document?: Document }).document;
+    const win = (globalThis as typeof globalThis & { window?: any }).window;
+    const doc = (globalThis as typeof globalThis & { document?: any }).document;
 
     // Handle visibility changes (tab backgrounding)
     doc.addEventListener('visibilitychange', () => {

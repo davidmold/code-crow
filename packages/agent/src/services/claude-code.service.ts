@@ -198,6 +198,6 @@ export class ClaudeCodeService extends EventEmitter {
   }
 
   getWorkingDirectory(): string {
-    return this.sessionManager.getWorkingDirectory({ workingDirectory: undefined })
+    return this.sessionManager.getWorkingDirectory({})
   }
 }

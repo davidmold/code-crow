@@ -13,11 +13,11 @@ export class MessageFactory {
 
   static isValidMessage(data: unknown): data is AnyMessage {
     return (
-      data &&
       typeof data === 'object' &&
-      typeof data.id === 'string' &&
-      typeof data.timestamp === 'string' &&
-      typeof data.type === 'string'
+      data !== null &&
+      typeof (data as Record<string, unknown>).id === 'string' &&
+      typeof (data as Record<string, unknown>).timestamp === 'string' &&
+      typeof (data as Record<string, unknown>).type === 'string'
     );
   }
 
